@@ -12,7 +12,7 @@ env:
   NODE_VERSION: '20.x'
 
 permissions:
-  contents: read
+  contents: write  # Changed from read to write for GitHub releases
   packages: write
   id-token: write  # Required for OIDC
 
@@ -251,6 +251,10 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [build-and-test, code-quality, security, functional-test, integration-test]
     if: github.event_name == 'release' && github.event.action == 'created'
+    permissions:
+      contents: write  # Required for uploading release assets
+      packages: write
+      id-token: write
     
     steps:
     - name: Checkout code

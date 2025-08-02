@@ -16,6 +16,14 @@
   "keywords": ["mcp", "knowledge", "ai", "documentation"],
   "author": "sofianedjerbi",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sofianedjerbi/knowledge-tree-mcp.git"
+  },
+  "homepage": "https://github.com/sofianedjerbi/knowledge-tree-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/sofianedjerbi/knowledge-tree-mcp/issues"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.6.0",
     "fastify": "^4.0.0",

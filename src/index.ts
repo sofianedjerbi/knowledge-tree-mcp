@@ -170,6 +170,31 @@ class KnowledgeTreeServer {
               },
             },
           },
+          {
+            name: "index_knowledge",
+            description: "Get a comprehensive index/map of all knowledge entries for LLM memory overview",
+            inputSchema: {
+              type: "object",
+              properties: {
+                format: {
+                  type: "string",
+                  enum: ["tree", "list", "summary", "categories"],
+                  description: "Output format (default: tree)",
+                  default: "tree",
+                },
+                include_content: {
+                  type: "boolean",
+                  description: "Include brief content preview (default: false)",
+                  default: false,
+                },
+                max_entries: {
+                  type: "number",
+                  description: "Maximum entries to return (default: 100)",
+                  default: 100,
+                },
+              },
+            },
+          },
 
           // 2. CORE OPERATIONS - Basic CRUD for knowledge management
           {
@@ -536,6 +561,8 @@ class KnowledgeTreeServer {
           return await this.validateKnowledge(args);
         case "help":
           return await this.getHelp(args);
+        case "index_knowledge":
+          return await this.getKnowledgeIndex(args);
         case "delete_knowledge":
           return await this.deleteKnowledge(args);
         case "update_knowledge":
@@ -2296,11 +2323,12 @@ Key Concepts:
 • Validation: Ensures consistency and correctness
 
 Available Tools:
+• help - Get comprehensive help and guidance
+• index_knowledge - Get complete overview/map of all entries
 • search_knowledge - Find entries by priority, category, or keyword
 • add_knowledge - Create new knowledge entries
 • link_knowledge - Connect related entries
-• validate_knowledge - Check for errors and inconsistencies
-• help - This help system`,
+• validate_knowledge - Check for errors and inconsistencies`,
 
       creating: `📝 Creating Knowledge Entries
 
@@ -2448,9 +2476,10 @@ Choose a topic for detailed help:
 • help(topic: "examples") - Real-world examples
 
 Quick Start:
-1. Create an entry: add_knowledge(path, priority, problem, solution)
-2. Search entries: search_knowledge(keyword: "term")
-3. Validate all: validate_knowledge()
+1. Get overview: index_knowledge() - See all your knowledge at a glance
+2. Create an entry: add_knowledge(path, priority, problem, solution)  
+3. Search entries: search_knowledge(keyword: "term")
+4. Validate all: validate_knowledge()
 
 For full documentation, see the README.md file.`;
     
@@ -2462,6 +2491,187 @@ For full documentation, see the README.md file.`;
         },
       ],
     };
+  }
+
+  private async getKnowledgeIndex(args: any) {
+    const { format = "tree", include_content = false, max_entries = 100 } = args;
+    
+    const allEntries = await this.scanKnowledgeTree();
+    const entries: Array<{ path: string; entry: KnowledgeEntry; stats?: any }> = [];
+    
+    // Load all entries with basic stats
+    for (const path of allEntries.slice(0, max_entries)) {
+      const fullPath = join(this.knowledgeRoot, path);
+      
+      try {
+        const content = await fs.readFile(fullPath, "utf-8");
+        const entry: KnowledgeEntry = JSON.parse(content);
+        
+        let stats;
+        if (format === "summary") {
+          const fileStat = await fs.stat(fullPath);
+          stats = {
+            created: fileStat.birthtime.toISOString(),
+            modified: fileStat.mtime.toISOString(),
+            size: fileStat.size
+          };
+        }
+        
+        entries.push({ path, entry, stats });
+      } catch (error) {
+        // Skip invalid entries
+      }
+    }
+
+    let result: any = {
+      total_entries: allEntries.length,
+      showing: entries.length,
+      format: format,
+      timestamp: new Date().toISOString()
+    };
+
+    switch (format) {
+      case "tree":
+        result.index = this.buildTreeIndex(entries, include_content);
+        break;
+      case "list":
+        result.index = this.buildListIndex(entries, include_content);
+        break;
+      case "summary":
+        result.index = this.buildSummaryIndex(entries);
+        break;
+      case "categories":
+        result.index = this.buildCategoriesIndex(entries);
+        break;
+    }
+    
+    // Add quick stats
+    result.statistics = {
+      by_priority: this.countByPriority(entries),
+      by_category: this.countByCategory(entries),
+      with_relationships: entries.filter(e => e.entry.related_to?.length).length,
+      with_code: entries.filter(e => e.entry.code).length
+    };
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+
+  private buildTreeIndex(entries: Array<{ path: string; entry: KnowledgeEntry; stats?: any }>, includeContent: boolean) {
+    const tree: any = {};
+    
+    for (const { path, entry } of entries) {
+      const parts = path.split('/');
+      let current = tree;
+      
+      // Build nested structure
+      for (let i = 0; i < parts.length - 1; i++) {
+        const part = parts[i];
+        if (!current[part]) {
+          current[part] = {};
+        }
+        current = current[part];
+      }
+      
+      // Add the file
+      const filename = parts[parts.length - 1].replace('.json', '');
+      current[filename] = {
+        priority: entry.priority,
+        problem: includeContent ? entry.problem : entry.problem.substring(0, 50) + "...",
+        links: entry.related_to?.length || 0
+      };
+      
+      if (includeContent && entry.solution) {
+        current[filename].solution = entry.solution.substring(0, 100) + "...";
+      }
+    }
+    
+    return tree;
+  }
+
+  private buildListIndex(entries: Array<{ path: string; entry: KnowledgeEntry; stats?: any }>, includeContent: boolean) {
+    return entries.map(({ path, entry }) => ({
+      path,
+      priority: entry.priority,
+      problem: includeContent ? entry.problem : entry.problem.substring(0, 60) + "...",
+      solution: includeContent ? entry.solution.substring(0, 100) + "..." : undefined,
+      relationships: entry.related_to?.length || 0,
+      has_code: !!entry.code
+    }));
+  }
+
+  private buildSummaryIndex(entries: Array<{ path: string; entry: KnowledgeEntry; stats?: any }>) {
+    return entries.map(({ path, entry, stats }) => ({
+      path,
+      priority: entry.priority,
+      title: entry.problem.substring(0, 40) + "...",
+      relationships: entry.related_to?.length || 0,
+      features: {
+        has_code: !!entry.code,
+        has_examples: !!entry.examples,
+        has_links: !!(entry.related_to?.length)
+      },
+      file_info: stats
+    }));
+  }
+
+  private buildCategoriesIndex(entries: Array<{ path: string; entry: KnowledgeEntry; stats?: any }>) {
+    const categories: Record<string, any> = {};
+    
+    for (const { path, entry } of entries) {
+      const pathParts = path.split('/');
+      const category = pathParts.slice(0, -1).join('/') || 'root';
+      
+      if (!categories[category]) {
+        categories[category] = {
+          count: 0,
+          priorities: {} as Record<string, number>,
+          entries: []
+        };
+      }
+      
+      categories[category].count++;
+      categories[category].priorities[entry.priority] = (categories[category].priorities[entry.priority] || 0) + 1;
+      categories[category].entries.push({
+        filename: pathParts[pathParts.length - 1],
+        priority: entry.priority,
+        problem: entry.problem.substring(0, 50) + "..."
+      });
+    }
+    
+    return categories;
+  }
+
+  private countByPriority(entries: Array<{ path: string; entry: KnowledgeEntry; stats?: any }>) {
+    const counts: Record<string, number> = {
+      "CRITICAL": 0,
+      "REQUIRED": 0,
+      "COMMON": 0,
+      "EDGE-CASE": 0
+    };
+    
+    for (const { entry } of entries) {
+      counts[entry.priority]++;
+    }
+    
+    return counts;
+  }
+
+  private countByCategory(entries: Array<{ path: string; entry: KnowledgeEntry; stats?: any }>) {
+    const counts: Record<string, number> = {};
+    
+    for (const { path } of entries) {
+      const category = path.split('/').slice(0, -1).join('/') || 'root';
+      counts[category] = (counts[category] || 0) + 1;
+    }
+    
+    return counts;
   }
 
   private async startWebServer() {

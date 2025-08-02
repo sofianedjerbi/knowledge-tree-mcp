@@ -315,8 +315,8 @@ jobs:
         
     - name: Verify publication
       run: |
-        # Wait a moment for npm to propagate
-        sleep 10
+        # Wait for npm to propagate globally
+        sleep 60
         
         # Try to install the published package
         PACKAGE_NAME=$(node -e "console.log(require('./package.json').name)")

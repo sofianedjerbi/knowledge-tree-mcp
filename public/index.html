@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Tree Visualization</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        #network {
+            width: 100vw;
+            height: 100vh;
+            border: none;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 320px;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        #search {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            width: 520px;
+            max-width: 90vw;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+        }
+        #searchInput {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #fff;
+            margin-bottom: 15px;
+            transition: border-color 0.3s, background 0.3s;
+        }
+        #searchInput:focus {
+            outline: none;
+            border-color: #4444ff;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 3px rgba(68, 68, 255, 0.2);
+        }
+        .search-filters {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .priority-filter {
+            display: flex;
+            gap: 12px;
+            flex-wrap: nowrap;
+            align-items: center;
+            width: 100%;
+            justify-content: space-between;
+        }
+        .priority-filter label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 6px 10px;
+            border-radius: 4px;
+            transition: background 0.2s;
+            white-space: nowrap;
+            flex: 1;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .priority-filter label:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .priority-filter label:has(input:checked) {
+            background: rgba(68, 68, 255, 0.2);
+            border: 1px solid rgba(68, 68, 255, 0.3);
+        }
+        .priority-filter input[type="checkbox"] {
+            cursor: pointer;
+            transform: scale(1.2);
+        }
+        #searchResults {
+            max-height: 300px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            margin-top: 10px;
+            display: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .search-result {
+            padding: 8px;
+            margin: 4px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+            overflow: hidden;
+            word-break: break-all;
+        }
+        .search-result:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .search-result-path {
+            font-size: 11px;
+            color: #888;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-all;
+            white-space: normal;
+            display: block;
+            width: 100%;
+        }
+        .search-result-problem {
+            font-size: 13px;
+            margin-top: 4px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            white-space: normal;
+            display: block;
+            width: 100%;
+        }
+        .search-info {
+            font-size: 13px;
+            color: #888;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+        #details {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 450px;
+            display: none;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        #stats {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            width: 450px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        .tab-button {
+            padding: 8px 16px;
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .tab-button.active {
+            color: #fff;
+            border-bottom-color: #4444ff;
+        }
+        .tab-button:hover {
+            color: #ccc;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .stat-item {
+            background: rgba(255,255,255,0.05);
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4444ff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+        .priority-bar {
+            display: flex;
+            height: 4px;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+        .priority-segment {
+            height: 100%;
+        }
+        .recent-item {
+            padding: 12px;
+            margin: 6px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            border-left: 4px solid transparent;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .recent-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .recent-item.added {
+            border-left-color: #44ff44;
+        }
+        .recent-item.modified {
+            border-left-color: #ff9944;
+        }
+        .recent-path {
+            font-size: 12px;
+            color: #888;
+            font-weight: 500;
+        }
+        .recent-problem {
+            font-size: 13px;
+            margin-top: 4px;
+            line-height: 1.3;
+        }
+        .recent-meta {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+        .priority-CRITICAL { color: #ff4444; }
+        .priority-REQUIRED { color: #ff9944; }
+        .priority-COMMON { color: #44ff44; }
+        .priority-EDGE-CASE { color: #4444ff; }
+        #status {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .status-connected { background: #44ff44; color: #000; }
+        .status-disconnected { background: #ff4444; color: #fff; }
+        pre { 
+            background: rgba(255, 255, 255, 0.1); 
+            padding: 10px; 
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="network"></div>
+    <div id="search">
+        <input type="text" id="searchInput" placeholder="Search knowledge entries... (* = any, ? = one char, Ctrl+F)" />
+        <div class="search-filters">
+            <div class="priority-filter">
+                <label class="priority-CRITICAL">
+                    <input type="checkbox" name="priority" value="CRITICAL" checked>
+                    CRITICAL
+                </label>
+                <label class="priority-REQUIRED">
+                    <input type="checkbox" name="priority" value="REQUIRED" checked>
+                    REQUIRED
+                </label>
+                <label class="priority-COMMON">
+                    <input type="checkbox" name="priority" value="COMMON" checked>
+                    COMMON
+                </label>
+                <label class="priority-EDGE-CASE">
+                    <input type="checkbox" name="priority" value="EDGE-CASE" checked>
+                    EDGE-CASE
+                </label>
+            </div>
+        </div>
+        <div class="search-info" id="searchInfo"></div>
+        <div id="searchResults"></div>
+    </div>
+    <div id="info">
+        <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">Knowledge Tree</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; text-align: center;">
+                <div style="font-size: 20px; font-weight: bold; color: #4444ff;" id="nodeCount">0</div>
+                <div style="font-size: 12px; color: #888; margin-top: 2px;">Nodes</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; text-align: center;">
+                <div style="font-size: 20px; font-weight: bold; color: #4444ff;" id="edgeCount">0</div>
+                <div style="font-size: 12px; color: #888; margin-top: 2px;">Links</div>
+            </div>
+        </div>
+        <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 500;">Priority Legend</h3>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="priority-CRITICAL" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(255,68,68,0.1); border-radius: 4px; border-left: 3px solid #ff4444;">
+                <span style="font-size: 16px;">●</span>
+                <span style="font-weight: 500;">CRITICAL</span>
+            </div>
+            <div class="priority-REQUIRED" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(255,153,68,0.1); border-radius: 4px; border-left: 3px solid #ff9944;">
+                <span style="font-size: 16px;">●</span>
+                <span style="font-weight: 500;">REQUIRED</span>
+            </div>
+            <div class="priority-COMMON" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(68,255,68,0.1); border-radius: 4px; border-left: 3px solid #44ff44;">
+                <span style="font-size: 16px;">●</span>
+                <span style="font-weight: 500;">COMMON</span>
+            </div>
+            <div class="priority-EDGE-CASE" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(68,68,255,0.1); border-radius: 4px; border-left: 3px solid #4444ff;">
+                <span style="font-size: 16px;">●</span>
+                <span style="font-weight: 500;">EDGE-CASE</span>
+            </div>
+        </div>
+    </div>
+    <div id="details">
+        <h3 id="detailsTitle" style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Select a node</h3>
+        <div id="detailsContent"></div>
+    </div>
+    <div id="stats">
+        <div class="tab-buttons">
+            <button class="tab-button active" data-tab="overview">Overview</button>
+            <button class="tab-button" data-tab="recent">Recent</button>
+        </div>
+        <div id="overview-tab" class="tab-content active">
+            <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Knowledge Stats</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalEntries">-</div>
+                    <div class="stat-label">Total Entries</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="withRelations">-</div>
+                    <div class="stat-label">With Links</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="withCode">-</div>
+                    <div class="stat-label">With Code</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="orphanedCount">-</div>
+                    <div class="stat-label">Orphaned</div>
+                </div>
+            </div>
+            <h4 style="margin: 15px 0 8px 0; font-size: 14px; font-weight: 500;">Priority Distribution</h4>
+            <div class="priority-bar" id="priorityBar"></div>
+            <div id="priorityLegend" style="font-size: 10px; margin-top: 5px;"></div>
+            <h4 style="margin: 15px 0 8px 0; font-size: 14px; font-weight: 500;">Categories</h4>
+            <div id="categoriesInfo"></div>
+        </div>
+        <div id="recent-tab" class="tab-content">
+            <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Recent Changes</h3>
+            <div style="font-size: 13px; color: #888; margin-bottom: 12px;">
+                Last <span id="recentDays">7</span> days
+            </div>
+            <div id="recentList"></div>
+        </div>
+    </div>
+    <div id="status" class="status-disconnected">Connecting...</div>
+
+    <script>
+        // Create network
+        const container = document.getElementById('network');
+        const data = {
+            nodes: new vis.DataSet(),
+            edges: new vis.DataSet()
+        };
+        
+        const options = {
+            nodes: {
+                shape: 'dot',
+                font: {
+                    color: '#ffffff',
+                    size: 12
+                },
+                borderWidth: 2
+            },
+            edges: {
+                arrows: {
+                    to: { enabled: true, scaleFactor: 0.5 }
+                },
+                color: {
+                    color: '#848484',
+                    highlight: '#ffffff'
+                },
+                font: {
+                    color: '#ffffff',
+                    size: 10,
+                    align: 'middle'
+                }
+            },
+            physics: {
+                forceAtlas2Based: {
+                    gravitationalConstant: -50,
+                    centralGravity: 0.01,
+                    springLength: 100,
+                    springConstant: 0.08
+                },
+                solver: 'forceAtlas2Based',
+                stabilization: {
+                    iterations: 150
+                }
+            },
+            interaction: {
+                hover: true,
+                tooltipDelay: 200
+            }
+        };
+        
+        const network = new vis.Network(container, data, options);
+        
+        // Priority colors
+        const priorityColors = {
+            'CRITICAL': '#ff4444',
+            'REQUIRED': '#ff9944',
+            'COMMON': '#44ff44',
+            'EDGE-CASE': '#4444ff'
+        };
+        
+        // WebSocket connection
+        let ws;
+        let knowledgeMap = new Map();
+        
+        function connectWebSocket() {
+            const wsUrl = `ws://${window.location.host}/ws`;
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                document.getElementById('status').className = 'status-connected';
+                document.getElementById('status').textContent = 'Connected';
+                ws.send(JSON.stringify({ type: 'getAll' }));
+            };
+            
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                document.getElementById('status').className = 'status-disconnected';
+                document.getElementById('status').textContent = 'Disconnected - Reconnecting...';
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+        
+        function handleMessage(message) {
+            switch (message.type) {
+                case 'allEntries':
+                    // Clear and rebuild
+                    data.nodes.clear();
+                    data.edges.clear();
+                    knowledgeMap.clear();
+                    
+                    message.entries.forEach(entry => {
+                        addOrUpdateNode(entry.path, entry.data);
+                    });
+                    updateCounts();
+                    break;
+                    
+                case 'entryAdded':
+                case 'entryUpdated':
+                    addOrUpdateNode(message.path, message.data);
+                    updateCounts();
+                    break;
+                    
+                case 'entryDeleted':
+                    removeNode(message.path);
+                    updateCounts();
+                    break;
+            }
+        }
+        
+        function addOrUpdateNode(path, entryData) {
+            knowledgeMap.set(path, entryData);
+            
+            const nodeId = path;
+            const color = priorityColors[entryData.priority] || '#888888';
+            // Remove priority prefix and .json extension, keep only the descriptive part
+            const fileName = path.split('/').pop().replace('.json', '');
+            const label = fileName.replace(/^(CRITICAL|REQUIRED|COMMON|EDGE-CASE)-/, '');
+            
+            // Add or update node
+            if (data.nodes.get(nodeId)) {
+                data.nodes.update({
+                    id: nodeId,
+                    label: label,
+                    color: {
+                        background: color,
+                        border: color,
+                        highlight: {
+                            background: color,
+                            border: '#ffffff'
+                        }
+                    },
+                    title: `${entryData.priority}: ${entryData.problem}`
+                });
+            } else {
+                data.nodes.add({
+                    id: nodeId,
+                    label: label,
+                    color: {
+                        background: color,
+                        border: color,
+                        highlight: {
+                            background: color,
+                            border: '#ffffff'
+                        }
+                    },
+                    title: `${entryData.priority}: ${entryData.problem}`,
+                    size: entryData.priority === 'CRITICAL' ? 20 : 15
+                });
+            }
+            
+            // Add edges for relationships
+            if (entryData.related_to) {
+                entryData.related_to.forEach(link => {
+                    const edgeId = `${nodeId}->${link.path}`;
+                    const reverseEdgeId = `${link.path}->${nodeId}`;
+                    
+                    // Skip if reverse edge exists (for bidirectional)
+                    if (data.edges.get(reverseEdgeId) && 
+                        (link.relationship === 'related' || link.relationship === 'conflicts_with')) {
+                        return;
+                    }
+                    
+                    if (!data.edges.get(edgeId)) {
+                        data.edges.add({
+                            id: edgeId,
+                            from: nodeId,
+                            to: link.path,
+                            label: link.relationship,
+                            color: {
+                                color: link.relationship === 'conflicts_with' ? '#ff4444' : '#848484'
+                            },
+                            dashes: link.relationship === 'superseded_by' || link.relationship === 'implemented_by'
+                        });
+                    }
+                });
+            }
+        }
+        
+        function removeNode(path) {
+            knowledgeMap.delete(path);
+            data.nodes.remove(path);
+            // Remove all edges connected to this node
+            const connectedEdges = data.edges.get({
+                filter: (edge) => edge.from === path || edge.to === path
+            });
+            data.edges.remove(connectedEdges.map(e => e.id));
+        }
+        
+        function updateCounts() {
+            document.getElementById('nodeCount').textContent = data.nodes.length;
+            document.getElementById('edgeCount').textContent = data.edges.length;
+        }
+        
+        // Handle node selection
+        network.on('selectNode', (params) => {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                const entry = knowledgeMap.get(nodeId);
+                if (entry) {
+                    showDetails(nodeId, entry);
+                }
+            }
+        });
+        
+        network.on('deselectNode', () => {
+            document.getElementById('details').style.display = 'none';
+        });
+        
+        function showDetails(path, entry) {
+            document.getElementById('details').style.display = 'block';
+            document.getElementById('detailsTitle').textContent = path;
+            
+            let html = `
+                <p><strong>Priority:</strong> <span class="priority-${entry.priority}">${entry.priority}</span></p>
+                <p><strong>Problem:</strong> ${entry.problem}</p>
+                <p><strong>Solution:</strong> ${entry.solution}</p>
+            `;
+            
+            if (entry.code) {
+                html += `<p><strong>Code:</strong></p><pre>${escapeHtml(entry.code)}</pre>`;
+            }
+            
+            if (entry.related_to && entry.related_to.length > 0) {
+                html += '<p><strong>Related to:</strong></p><ul>';
+                entry.related_to.forEach(link => {
+                    html += `<li>${link.relationship}: ${link.path}`;
+                    if (link.description) {
+                        html += ` - ${link.description}`;
+                    }
+                    html += '</li>';
+                });
+                html += '</ul>';
+            }
+            
+            document.getElementById('detailsContent').innerHTML = html;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Search functionality
+        let searchTimeout;
+        let allNodes = [];
+        let currentSearchResults = [];
+        
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        const searchInfo = document.getElementById('searchInfo');
+        const priorityCheckboxes = document.querySelectorAll('input[name="priority"]');
+        
+        // Keyboard shortcut for search
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                searchInput.focus();
+            }
+        });
+        
+        function performSearch() {
+            const query = searchInput.value.trim();
+            const selectedPriorities = Array.from(priorityCheckboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+            
+            if (!query && selectedPriorities.length === 4) {
+                // Show all if no query and all priorities selected
+                searchResults.style.display = 'none';
+                searchInfo.textContent = '';
+                data.nodes.forEach(node => {
+                    data.nodes.update({ id: node.id, opacity: 1 });
+                });
+                data.edges.forEach(edge => {
+                    data.edges.update({ id: edge.id, hidden: false });
+                });
+                return;
+            }
+            
+            // Only search if there's a query (* wildcard counts as a query)
+            if (!query) {
+                searchResults.style.display = 'none';
+                searchInfo.textContent = '';
+                return;
+            }
+            
+            // Send search request
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'search',
+                    query: query,
+                    priority: selectedPriorities,
+                    limit: 100
+                }));
+            }
+        }
+        
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(performSearch, 300);
+        });
+        
+        priorityCheckboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+                // Only trigger search if there's a query
+                if (searchInput.value.trim()) {
+                    performSearch();
+                }
+            });
+        });
+        
+        function displaySearchResults(results) {
+            currentSearchResults = results;
+            searchResults.innerHTML = '';
+            
+            if (results.length === 0) {
+                searchInfo.textContent = 'No results found';
+                searchResults.style.display = 'none';
+                return;
+            }
+            
+            searchInfo.textContent = `Found ${results.length} result${results.length > 1 ? 's' : ''}`;
+            searchResults.style.display = 'block';
+            
+            // Update graph visualization
+            const matchingPaths = new Set(results.map(r => r.path));
+            
+            // Fade non-matching nodes
+            data.nodes.forEach(node => {
+                if (matchingPaths.has(node.id)) {
+                    data.nodes.update({ id: node.id, opacity: 1 });
+                } else {
+                    data.nodes.update({ id: node.id, opacity: 0.2 });
+                }
+            });
+            
+            // Hide edges not connected to matching nodes
+            data.edges.forEach(edge => {
+                if (matchingPaths.has(edge.from) || matchingPaths.has(edge.to)) {
+                    data.edges.update({ id: edge.id, hidden: false, opacity: 0.5 });
+                } else {
+                    data.edges.update({ id: edge.id, hidden: true });
+                }
+            });
+            
+            // Display search results list
+            results.slice(0, 20).forEach(result => {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'search-result';
+                
+                const pathDiv = document.createElement('div');
+                pathDiv.className = 'search-result-path priority-' + result.entry.priority;
+                pathDiv.textContent = result.path;
+                
+                const problemDiv = document.createElement('div');
+                problemDiv.className = 'search-result-problem';
+                problemDiv.textContent = result.entry.problem.substring(0, 100) + 
+                    (result.entry.problem.length > 100 ? '...' : '');
+                
+                resultDiv.appendChild(pathDiv);
+                resultDiv.appendChild(problemDiv);
+                
+                resultDiv.addEventListener('click', () => {
+                    // Focus on the node
+                    network.selectNodes([result.path]);
+                    network.focus(result.path, {
+                        scale: 1.5,
+                        animation: {
+                            duration: 500,
+                            easingFunction: 'easeInOutQuad'
+                        }
+                    });
+                    showDetails(result.path, result.entry);
+                });
+                
+                searchResults.appendChild(resultDiv);
+            });
+            
+            if (results.length > 20) {
+                const moreDiv = document.createElement('div');
+                moreDiv.className = 'search-info';
+                moreDiv.textContent = `... and ${results.length - 20} more`;
+                searchResults.appendChild(moreDiv);
+            }
+        }
+        
+        // Modify handleMessage to handle search results
+        const originalHandleMessage = handleMessage;
+        handleMessage = function(message) {
+            if (message.type === 'searchResults') {
+                displaySearchResults(message.results);
+            } else {
+                originalHandleMessage(message);
+            }
+        };
+        
+        // Stats and recent changes functionality
+        let currentStats = null;
+        let currentRecent = null;
+        
+        // Tab switching
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const targetTab = button.dataset.tab;
+                
+                // Update button states
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Update tab content
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                document.getElementById(`${targetTab}-tab`).classList.add('active');
+                
+                // Load data if needed
+                if (targetTab === 'overview' && !currentStats) {
+                    loadStats();
+                } else if (targetTab === 'recent' && !currentRecent) {
+                    loadRecent();
+                }
+            });
+        });
+        
+        function loadStats() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'stats'
+                }));
+            }
+        }
+        
+        function loadRecent() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'recent',
+                    days: 7,
+                    limit: 15
+                }));
+            }
+        }
+        
+        function displayStats(stats) {
+            currentStats = stats;
+            
+            if (stats.summary) {
+                document.getElementById('totalEntries').textContent = stats.summary.total_entries;
+                document.getElementById('withRelations').textContent = stats.summary.with_relationships;
+                document.getElementById('withCode').textContent = stats.summary.with_code_examples;
+            }
+            
+            if (stats.orphaned) {
+                document.getElementById('orphanedCount').textContent = stats.orphaned.count;
+            }
+            
+            if (stats.priorities) {
+                const priorityBar = document.getElementById('priorityBar');
+                const priorityLegend = document.getElementById('priorityLegend');
+                
+                priorityBar.innerHTML = '';
+                priorityLegend.innerHTML = '';
+                
+                const colors = {
+                    'CRITICAL': '#ff4444',
+                    'REQUIRED': '#ff9944', 
+                    'COMMON': '#44ff44',
+                    'EDGE-CASE': '#4444ff'
+                };
+                
+                let legendText = '';
+                Object.entries(stats.priorities.counts).forEach(([priority, count]) => {
+                    const percentage = stats.priorities.percentages[priority];
+                    
+                    const segment = document.createElement('div');
+                    segment.className = 'priority-segment';
+                    segment.style.backgroundColor = colors[priority];
+                    segment.style.width = `${percentage}%`;
+                    segment.title = `${priority}: ${count} (${percentage}%)`;
+                    priorityBar.appendChild(segment);
+                    
+                    legendText += `${priority}: ${count} (${percentage}%) `;
+                });
+                
+                priorityLegend.textContent = legendText;
+            }
+            
+            if (stats.categories) {
+                const categoriesInfo = document.getElementById('categoriesInfo');
+                categoriesInfo.innerHTML = '';
+                
+                Object.entries(stats.categories).forEach(([category, info]) => {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.style.fontSize = '10px';
+                    categoryDiv.style.marginBottom = '2px';
+                    categoryDiv.innerHTML = `<strong>${category}</strong>: ${info.count} entries`;
+                    categoriesInfo.appendChild(categoryDiv);
+                });
+            }
+        }
+        
+        function displayRecent(recent) {
+            currentRecent = recent;
+            
+            document.getElementById('recentDays').textContent = recent.period.days || 7;
+            
+            const recentList = document.getElementById('recentList');
+            recentList.innerHTML = '';
+            
+            if (recent.summary) {
+                const summaryDiv = document.createElement('div');
+                summaryDiv.style.fontSize = '10px';
+                summaryDiv.style.color = '#888';
+                summaryDiv.style.marginBottom = '10px';
+                summaryDiv.textContent = `${recent.summary.total_changes} changes (${recent.summary.added} added, ${recent.summary.modified} modified)`;
+                recentList.appendChild(summaryDiv);
+            }
+            
+            recent.entries.forEach(entry => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `recent-item ${entry.change_type}`;
+                
+                const pathDiv = document.createElement('div');
+                pathDiv.className = 'recent-path priority-' + entry.priority;
+                pathDiv.textContent = entry.path;
+                
+                const problemDiv = document.createElement('div');
+                problemDiv.className = 'recent-problem';
+                problemDiv.textContent = entry.problem.substring(0, 80) + (entry.problem.length > 80 ? '...' : '');
+                
+                const metaDiv = document.createElement('div');
+                metaDiv.className = 'recent-meta';
+                const date = new Date(entry.modified_at);
+                metaDiv.textContent = `${entry.change_type} ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+                
+                itemDiv.appendChild(pathDiv);
+                itemDiv.appendChild(problemDiv);
+                itemDiv.appendChild(metaDiv);
+                
+                // Click to focus
+                itemDiv.addEventListener('click', () => {
+                    if (data.nodes.get(entry.path)) {
+                        network.selectNodes([entry.path]);
+                        network.focus(entry.path, {
+                            scale: 1.5,
+                            animation: { duration: 500 }
+                        });
+                    }
+                });
+                
+                recentList.appendChild(itemDiv);
+            });
+        }
+        
+        // Update handleMessage to handle stats and recent data
+        const originalHandleMessage2 = handleMessage;
+        handleMessage = function(message) {
+            if (message.type === 'statsResults') {
+                displayStats(message);
+            } else if (message.type === 'recentResults') {
+                displayRecent(message);
+            } else {
+                originalHandleMessage2(message);
+            }
+        };
+        
+        // Auto-load stats when connected
+        const originalConnect = connectWebSocket;
+        connectWebSocket = function() {
+            originalConnect();
+            // Load initial stats after a short delay
+            setTimeout(() => {
+                loadStats();
+            }, 1000);
+        };
+        
+        // Start WebSocket connection
+        connectWebSocket();
+    </script>
+</body>
+</html>

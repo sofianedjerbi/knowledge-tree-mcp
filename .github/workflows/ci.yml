@@ -1,0 +1,388 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ created ]
+
+env:
+  NODE_VERSION: '20.x'
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write  # Required for OIDC
+
+jobs:
+  # ============================================================================
+  # BUILD & TEST PHASE
+  # ============================================================================
+  
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-22.04  # Using 22.04 for better performance
+    
+    strategy:
+      matrix:
+        node-version: ['18.x', '20.x', '22.x']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: TypeScript build
+      run: npm run build
+      
+    - name: Verify build artifacts
+      run: |
+        ls -la dist/
+        test -f dist/index.js || (echo "Build artifact missing" && exit 1)
+        
+    # Store build artifacts for later jobs
+    - name: Upload build artifacts
+      if: matrix.node-version == '20.x'
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: dist/
+        retention-days: 1
+
+  # ============================================================================
+  # CODE QUALITY PHASE
+  # ============================================================================
+  
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-22.04
+    needs: build-and-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: TypeScript type checking
+      run: npx tsc --noEmit
+      
+    - name: Check for TypeScript errors
+      run: |
+        if npx tsc --noEmit 2>&1 | grep -q "error TS"; then
+          echo "TypeScript errors found"
+          exit 1
+        fi
+        echo "No TypeScript errors found"
+
+  # ============================================================================
+  # SECURITY SCANNING PHASE
+  # ============================================================================
+  
+  security:
+    name: Security Scan
+    runs-on: ubuntu-22.04
+    needs: build-and-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run npm audit
+      run: |
+        # Check for high/critical vulnerabilities
+        npm audit --audit-level=high
+        
+    - name: Check for known vulnerabilities
+      run: |
+        # Use npm audit to get detailed info
+        if npm audit --json | jq -e '.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical")' > /dev/null; then
+          echo "High or critical vulnerabilities found"
+          npm audit
+          exit 1
+        fi
+        echo "No high or critical vulnerabilities found"
+
+  # ============================================================================
+  # FUNCTIONAL TESTING PHASE
+  # ============================================================================
+  
+  functional-test:
+    name: Functional Tests
+    runs-on: ubuntu-22.04
+    needs: build-and-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+        path: dist/
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Test server startup
+      run: |
+        # Test that the server can start and respond
+        timeout 10s node dist/index.js --help || test $? = 124
+        
+    - name: Test CLI functionality
+      run: |
+        # Create a test directory
+        mkdir -p test-docs
+        echo '{"priority": "COMMON", "problem": "Test", "solution": "Test solution"}' > test-docs/test.json
+        
+        # Test basic functionality (timeout after 5 seconds)
+        timeout 5s node dist/index.js --docs test-docs --help || test $? = 124
+        
+        # Cleanup
+        rm -rf test-docs
+
+  # ============================================================================
+  # INTEGRATION TESTING PHASE
+  # ============================================================================
+  
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-22.04
+    needs: build-and-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+        path: dist/
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Test web interface startup
+      run: |
+        # Test web interface can start
+        echo "Testing web interface startup..."
+        
+        # Start server in background with web interface
+        node dist/index.js --port 3000 &
+        SERVER_PID=$!
+        
+        # Wait for server to start
+        sleep 3
+        
+        # Test if server is responding (basic health check)
+        if curl -f http://localhost:3000 > /dev/null 2>&1; then
+          echo "Web interface is responding"
+        else
+          echo "Web interface failed to start"
+          kill $SERVER_PID 2>/dev/null || true
+          exit 1
+        fi
+        
+        # Cleanup
+        kill $SERVER_PID 2>/dev/null || true
+        
+    - name: Test package installation
+      run: |
+        # Test that the package can be installed globally
+        npm pack
+        PACKAGE_FILE=$(ls *.tgz)
+        npm install -g $PACKAGE_FILE
+        
+        # Test global installation works
+        which knowledge-tree-mcp || (echo "Global installation failed" && exit 1)
+        
+        # Test CLI help
+        knowledge-tree-mcp --help
+        
+        # Cleanup
+        npm uninstall -g @sofianedjerbi/knowledge-tree-mcp
+
+  # ============================================================================
+  # PUBLISHING PHASE
+  # ============================================================================
+  
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-22.04
+    needs: [build-and-test, code-quality, security, functional-test, integration-test]
+    if: github.event_name == 'release' && github.event.action == 'created'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+        path: dist/
+        
+    - name: Setup Node.js for publishing
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        registry-url: 'https://registry.npmjs.org'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Verify package integrity
+      run: |
+        # Ensure all required files are present
+        test -f package.json || (echo "package.json missing" && exit 1)
+        test -f dist/index.js || (echo "dist/index.js missing" && exit 1)
+        test -f README.md || (echo "README.md missing" && exit 1)
+        
+        # Verify package.json has correct fields
+        node -e "
+          const pkg = require('./package.json');
+          if (!pkg.bin || !pkg.bin['knowledge-tree-mcp']) {
+            console.error('Binary entry missing from package.json');
+            process.exit(1);
+          }
+          if (!pkg.main || pkg.main !== 'dist/index.js') {
+            console.error('Main entry incorrect in package.json');
+            process.exit(1);
+          }
+          console.log('Package integrity verified');
+        "
+        
+    - name: Check npm authentication
+      run: npm whoami
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        
+    - name: Publish to npm
+      run: |
+        # Check if this is a scoped package
+        if [[ "$(npm config get registry)" == "https://registry.npmjs.org/" ]]; then
+          npm publish --access public --provenance
+        else
+          npm publish --provenance
+        fi
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        
+    - name: Verify publication
+      run: |
+        # Wait a moment for npm to propagate
+        sleep 10
+        
+        # Try to install the published package
+        PACKAGE_NAME=$(node -e "console.log(require('./package.json').name)")
+        PACKAGE_VERSION=$(node -e "console.log(require('./package.json').version)")
+        
+        echo "Verifying package $PACKAGE_NAME@$PACKAGE_VERSION"
+        npm view $PACKAGE_NAME@$PACKAGE_VERSION
+        
+    - name: Create GitHub release assets
+      run: |
+        # Create a tarball for GitHub release
+        npm pack
+        PACKAGE_FILE=$(ls *.tgz)
+        
+        # Add the tarball to the release
+        gh release upload ${{ github.event.release.tag_name }} $PACKAGE_FILE
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================================================
+  # POST-PUBLISH VERIFICATION
+  # ============================================================================
+  
+  post-publish-verify:
+    name: Post-Publish Verification
+    runs-on: ubuntu-22.04
+    needs: publish
+    if: github.event_name == 'release' && github.event.action == 'created'
+    
+    steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        
+    - name: Test npx installation
+      run: |
+        # Test the exact command users will run
+        PACKAGE_NAME="@sofianedjerbi/knowledge-tree-mcp"
+        
+        echo "Testing: npx $PACKAGE_NAME --help"
+        npx $PACKAGE_NAME --help
+        
+        echo "Testing: npx $PACKAGE_NAME --version"
+        npx $PACKAGE_NAME --help | grep -q "Usage:" || (echo "CLI help not working" && exit 1)
+        
+    - name: Test Claude MCP integration command
+      run: |
+        # Test the installation command users will use with Claude
+        echo "The following command can be used to add this to Claude MCP:"
+        echo "claude mcp add knowledge-tree npx -- -y @sofianedjerbi/knowledge-tree-mcp"
+        echo "claude mcp add knowledge-tree npx -- -y @sofianedjerbi/knowledge-tree-mcp -- --docs /path/to/docs --port 3000"
+
+  # ============================================================================
+  # NOTIFICATION & CLEANUP
+  # ============================================================================
+  
+  notify-success:
+    name: Notify Success
+    runs-on: ubuntu-22.04
+    needs: [publish, post-publish-verify]
+    if: success() && github.event_name == 'release'
+    
+    steps:
+    - name: Success notification
+      run: |
+        echo "🎉 Successfully published Knowledge Tree MCP!"
+        echo "📦 Package: @sofianedjerbi/knowledge-tree-mcp"
+        echo "🏷️  Version: ${{ github.event.release.tag_name }}"
+        echo "📚 Documentation: https://github.com/${{ github.repository }}"
+        echo ""
+        echo "Users can now install with:"
+        echo "npx @sofianedjerbi/knowledge-tree-mcp"

@@ -1,0 +1,30 @@
+{
+  "name": "@sofianedjerbi/knowledge-tree-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for hierarchical project knowledge management",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "knowledge-tree-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["mcp", "knowledge", "ai", "documentation"],
+  "author": "sofianedjerbi",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.6.0",
+    "fastify": "^4.0.0",
+    "@fastify/static": "^6.0.0",
+    "@fastify/websocket": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

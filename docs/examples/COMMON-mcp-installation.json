@@ -1,0 +1,6 @@
+{
+  "priority": "COMMON",
+  "problem": "MCP add command fails with 'unknown option' when using npx flags",
+  "solution": "Use -- separator before npx flags to pass them correctly",
+  "code": "claude mcp add name npx -- -y @package/name"
+}

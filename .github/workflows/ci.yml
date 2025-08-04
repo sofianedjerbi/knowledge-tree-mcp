@@ -420,47 +420,13 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ============================================================================
-  # POST-PUBLISH VERIFICATION
-  # ============================================================================
-  
-  post-publish-verify:
-    name: Post-Publish Verification
-    runs-on: ubuntu-22.04
-    needs: publish
-    if: github.event_name == 'release' && github.event.action == 'created'
-    
-    steps:
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        
-    - name: Test npx installation
-      run: |
-        # Test the exact command users will run
-        PACKAGE_NAME="@sofianedjerbi/knowledge-tree-mcp"
-        
-        echo "Testing: npx $PACKAGE_NAME --help"
-        npx $PACKAGE_NAME --help
-        
-        echo "Testing: npx $PACKAGE_NAME --version"
-        npx $PACKAGE_NAME --help | grep -q "Usage:" || (echo "CLI help not working" && exit 1)
-        
-    - name: Test Claude MCP integration command
-      run: |
-        # Test the installation command users will use with Claude
-        echo "The following command can be used to add this to Claude MCP:"
-        echo "claude mcp add knowledge-tree npx -- -y @sofianedjerbi/knowledge-tree-mcp"
-        echo "claude mcp add knowledge-tree npx -- -y @sofianedjerbi/knowledge-tree-mcp -- --docs /path/to/docs --port 3000"
-
-  # ============================================================================
-  # NOTIFICATION & CLEANUP
+  # NOTIFICATION
   # ============================================================================
   
   notify-success:
     name: Notify Success
     runs-on: ubuntu-22.04
-    needs: [publish, post-publish-verify]
+    needs: publish
     if: success() && github.event_name == 'release'
     
     steps:

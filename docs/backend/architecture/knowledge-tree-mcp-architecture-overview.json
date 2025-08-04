@@ -1,0 +1,36 @@
+{
+  "title": "Knowledge Tree MCP Architecture Overview",
+  "priority": "CRITICAL",
+  "problem": "Understanding the overall architecture and design principles of Knowledge Tree MCP is essential for developers and users to effectively work with the system.",
+  "solution": "The system follows a modular architecture with clear separation of concerns:\n\n## Core Architecture Components\n\n### MCP Server Layer\n- KnowledgeTreeServer: Main server class handling MCP protocol\n- MCPHandlers: Request routing and tool execution\n- ServerContext: Shared state and configuration\n\n### Tool System\n- Each tool is a standalone module with a handler function\n- Tools follow consistent interface pattern\n- Tools are registered dynamically at server startup\n\n### Storage Layer\n- JSON file-based storage for reliability and simplicity\n- Hierarchical directory structure mirrors knowledge categories\n- Atomic file operations for data integrity\n\n### Type System\n- Strong TypeScript typing throughout\n- Core types: KnowledgeEntry, Priority, RelationshipType\n- Ensures consistency across the codebase\n\n### Web Interface\n- Optional Fastify server for visual UI\n- Real-time updates via WebSocket\n- Interactive knowledge graph visualization\n\n## Design Principles\n\n1. Simplicity: File-based storage, no database dependencies\n2. Extensibility: Easy to add new tools or modify behavior\n3. AI-Friendly: Markdown input/output optimized for LLMs\n4. Type Safety: Full TypeScript with strict mode\n5. Modularity: Clear separation between layers\n\n## Data Flow\n\n1. MCP Client sends tool request\n2. MCP Server validates and routes to handler\n3. Tool Handler processes request with context\n4. File System reads/writes JSON files\n5. Response formatted result back to client",
+  "tags": [
+    "architecture",
+    "mcp",
+    "overview",
+    "design",
+    "system"
+  ],
+  "context": "Knowledge Tree MCP is a Model Context Protocol server that provides hierarchical knowledge management for AI assistants. Built with TypeScript and Node.js, it offers both a programmatic API through MCP tools and an optional web interface for visual exploration.",
+  "examples": [
+    {
+      "title": "Request Flow Example",
+      "description": "How a search request is processed",
+      "code": "// Client sends search request\n{\n  \"tool\": \"search_knowledge\",\n  \"args\": { \"query\": \"authentication\" }\n}\n\n// Server routes to search handler\nsearchHandler(args, context)\n\n// Handler searches JSON files\nconst entries = await searchInDirectory(docsPath, query)\n\n// Returns formatted response\n{\n  \"content\": [{\n    \"type\": \"text\",\n    \"text\": \"Found 3 entries matching 'authentication'\"\n  }]\n}",
+      "language": "typescript"
+    },
+    {
+      "title": "Storage Structure Example",
+      "description": "How knowledge is organized on disk",
+      "code": "docs/\n├── architecture/\n│   ├── mcp/\n│   │   └── overview.json\n│   └── patterns/\n│       └── modular-design.json\n├── development/\n│   └── setup/\n│       └── local-environment.json\n└── logs/\n    └── usage.jsonl"
+    }
+  ],
+  "created_at": "2025-08-03T16:25:36.410Z",
+  "updated_at": "2025-08-04T11:14:11.407Z",
+  "related_to": [
+    {
+      "path": "llm/documentation/knowledge-entry-structure-best-practices.json",
+      "relationship": "related",
+      "description": "Defines the structure of knowledge entries stored in the system"
+    }
+  ]
+}

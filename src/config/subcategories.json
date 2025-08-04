@@ -1,0 +1,106 @@
+{
+  "how-to": [
+    "how to", "how do", "how can", "how should", "how would",
+    "implement", "implementing", "create", "creating", "build", "building", "make", "making",
+    "setup", "set up", "configure", "configuring", "install", "installing",
+    "getting started", "quick start", "quickstart", "introduction to", "intro to",
+    "integrate", "integrating", "connect", "connecting", "use", "using",
+    "add", "adding", "enable", "enabling", "deploy", "deploying",
+    "migrate", "migrating", "upgrade", "upgrading", "update", "updating",
+    "generate", "generating", "scaffold", "scaffolding", "bootstrap", "bootstrapping"
+  ],
+  "troubleshooting": [
+    "error", "errors", "exception", "exceptions", "bug", "bugs", "issue", "issues", "problem", "problems",
+    "fix", "fixing", "solve", "solving", "resolve", "resolving", "repair", "repairing",
+    "troubleshoot", "troubleshooting", "debug", "debugging", "diagnose", "diagnosing",
+    "not working", "doesn't work", "won't work", "failed", "failing", "failure",
+    "crash", "crashing", "crashes", "broken", "breaking", "breaks",
+    "timeout", "timeouts", "hanging", "stuck", "frozen", "slow", "performance",
+    "memory leak", "out of memory", "stack overflow", "deadlock", "race condition",
+    "connection refused", "network error", "permission denied", "access denied",
+    "compilation error", "build error", "runtime error", "syntax error"
+  ],
+  "best-practices": [
+    "best practice", "best practices", "pattern", "patterns", "design pattern", "design patterns",
+    "optimization", "optimize", "optimizing", "optimized", "performance", "efficient", "efficiency",
+    "improve", "improving", "improvement", "enhancement", "enhance", "enhancing",
+    "recommendation", "recommendations", "tip", "tips", "trick", "tricks",
+    "guideline", "guidelines", "standard", "standards", "code style", "coding style",
+    "convention", "conventions", "principle", "principles", "methodology", "methodologies",
+    "clean code", "refactor", "refactoring", "maintainable", "maintainability",
+    "scalable", "scalability", "secure", "security", "reliable", "reliability",
+    "testable", "testability", "readable", "readability", "modular", "modularity"
+  ],
+  "examples": [
+    "example", "examples", "sample", "samples", "template", "templates",
+    "demo", "demonstration", "showcase", "snippet", "snippets",
+    "code example", "code examples", "implementation example", "use case", "use cases",
+    "real-world", "practical", "hands-on", "tutorial", "boilerplate",
+    "starter", "seed", "skeleton", "prototype", "proof of concept", "poc",
+    "playground", "sandbox", "experiment", "recipe", "cookbook"
+  ],
+  "guides": [
+    "guide", "guides", "tutorial", "tutorials", "course", "courses", "lesson", "lessons",
+    "walkthrough", "walkthroughs", "step-by-step", "comprehensive", "complete",
+    "complete guide", "full guide", "detailed", "in-depth", "ultimate",
+    "learn", "learning", "teach", "teaching", "master", "mastering",
+    "beginner", "beginner's", "advanced", "intermediate", "expert",
+    "crash course", "bootcamp", "workshop", "training", "certification"
+  ],
+  "reference": [
+    "reference", "documentation", "docs", "api reference", "api docs",
+    "cheatsheet", "cheat sheet", "quick reference", "glossary", "manual",
+    "specification", "spec", "syntax", "grammar", "schema",
+    "changelog", "release notes", "migration guide", "faq", "frequently asked",
+    "readme", "wiki", "knowledge base", "help", "support",
+    "index", "list", "catalog", "registry", "directory"
+  ],
+  "comparison": [
+    "vs", "versus", "v", "comparison", "compare", "comparing", "compared",
+    "difference", "differences", "differ", "alternative", "alternatives",
+    "pros and cons", "advantages", "disadvantages", "benefits", "drawbacks",
+    "when to use", "choose", "choosing", "choice", "selection", "selecting",
+    "benchmark", "benchmarking", "performance comparison", "feature comparison",
+    "migration", "switch", "switching", "replace", "replacement"
+  ],
+  "architecture": [
+    "architecture", "architectures", "design", "designs", "structure", "structures", "overview",
+    "high-level", "system design", "component", "components", "diagram", "diagrams",
+    "flow", "flows", "workflow", "workflows", "process", "processes", "lifecycle",
+    "microservices", "monolith", "serverless", "event-driven", "service-oriented",
+    "layered", "hexagonal", "clean architecture", "domain-driven", "ddd",
+    "mvc", "mvp", "mvvm", "cqrs", "event sourcing", "saga",
+    "deployment", "infrastructure", "topology", "network", "distributed",
+    "scalability", "availability", "consistency", "partition tolerance", "cap theorem"
+  ],
+  
+  "configuration": [
+    "config", "configuration", "configure", "configuring", "settings", "setup",
+    "environment", "env", "variables", "properties", "parameters", "options",
+    "customization", "customize", "customizing", "personalization", "preferences",
+    "initialization", "init", "bootstrap", "startup", "launch"
+  ],
+  
+  "security": [
+    "security", "secure", "securing", "authentication", "authorization", "auth",
+    "encryption", "decryption", "hashing", "signing", "verification", "validation",
+    "vulnerability", "vulnerabilities", "exploit", "exploits", "attack", "attacks",
+    "protection", "defense", "hardening", "audit", "auditing", "compliance",
+    "penetration testing", "pentest", "security testing", "vulnerability assessment"
+  ],
+  
+  "performance": [
+    "performance", "optimization", "optimize", "optimizing", "tuning", "profiling",
+    "benchmark", "benchmarking", "monitoring", "metrics", "measurement",
+    "speed", "fast", "slow", "latency", "throughput", "scalability", "efficiency",
+    "memory usage", "cpu usage", "resource usage", "load testing", "stress testing",
+    "caching", "compression", "minification", "bundling", "lazy loading"
+  ],
+  
+  "migration": [
+    "migration", "migrate", "migrating", "upgrade", "upgrading", "update", "updating",
+    "version", "versioning", "compatibility", "backward compatibility", "forward compatibility",
+    "legacy", "modernization", "refactoring", "rewrite", "port", "porting",
+    "transition", "conversion", "transformation", "import", "export"
+  ]
+}

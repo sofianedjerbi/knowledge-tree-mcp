@@ -1,0 +1,410 @@
+/**
+ * Path generation utilities for Knowledge Tree MCP
+ * Automatically generates clean, factorized paths from titles
+ */
+
+import { join } from 'path';
+
+/**
+ * Common categories and their keywords for auto-categorization
+ */
+const CATEGORY_PATTERNS: Record<string, string[]> = {
+  'api': ['api', 'endpoint', 'rest', 'graphql', 'webhook', 'grpc', 'soap'],
+  'auth': ['auth', 'authentication', 'login', 'jwt', 'token', 'oauth', 'session', 'sso', 'saml'],
+  'database': ['database', 'db', 'sql', 'nosql', 'query', 'schema', 'migration'],
+  'deployment': ['deploy', 'deployment', 'release', 'rollout', 'scaling'],
+  'ci-cd': ['ci', 'cd', 'continuous integration', 'continuous deployment', 'pipeline', 'build'],
+  'iac': ['infrastructure as code', 'iac', 'terraform', 'ansible', 'configuration management'],
+  'errors': ['error', 'exception', 'bug', 'issue', 'problem', 'fix', 'troubleshoot'],
+  'performance': ['performance', 'optimization', 'speed', 'slow', 'fast', 'cache', 'latency'],
+  'security': ['security', 'vulnerability', 'xss', 'sql injection', 'csrf', 'encryption', 'pentest'],
+  'testing': ['test', 'testing', 'unit', 'integration', 'e2e', 'mock', 'qa', 'quality'],
+  'frontend': ['frontend', 'ui', 'ux', 'css', 'html', 'dom', 'browser', 'client-side'],
+  'backend': ['backend', 'server', 'api', 'server-side', 'microservice'],
+  'architecture': ['architecture', 'design', 'pattern', 'structure', 'microservice', 'monolith'],
+  'workflow': ['workflow', 'process', 'procedure', 'guide', 'how-to', 'tutorial'],
+  'monitoring': ['monitoring', 'logging', 'metrics', 'observability', 'tracing', 'alerting'],
+  'messaging': ['message', 'queue', 'pubsub', 'event', 'streaming', 'broker'],
+  'cloud': ['cloud', 'serverless', 'lambda', 'function', 'paas', 'saas'],
+  'networking': ['network', 'tcp', 'http', 'dns', 'load balancer', 'proxy', 'firewall'],
+};
+
+/**
+ * Action keywords that indicate "how-to" content
+ */
+const ACTION_KEYWORDS = [
+  'how to', 'guide to', 'tutorial', 'implement', 'create', 'build', 
+  'setup', 'configure', 'install', 'fix', 'debug', 'optimize',
+  'integrate', 'connect', 'use', 'handle', 'manage', 'process'
+];
+
+/**
+ * Technology-specific subcategories
+ */
+const TECH_SUBCATEGORIES: Record<string, string> = {
+  // Databases
+  'redis': 'database/redis',
+  'mongodb': 'database/mongodb',
+  'postgres': 'database/postgres',
+  'postgresql': 'database/postgres',
+  'mysql': 'database/mysql',
+  'elasticsearch': 'database/elasticsearch',
+  'cassandra': 'database/cassandra',
+  'dynamodb': 'database/dynamodb',
+  
+  // Frontend
+  'react': 'frontend/react',
+  'vue': 'frontend/vue',
+  'angular': 'frontend/angular',
+  'svelte': 'frontend/svelte',
+  'nextjs': 'frontend/nextjs',
+  'nuxt': 'frontend/nuxt',
+  'gatsby': 'frontend/gatsby',
+  
+  // Backend
+  'express': 'backend/express',
+  'fastify': 'backend/fastify',
+  'django': 'backend/django',
+  'flask': 'backend/flask',
+  'rails': 'backend/rails',
+  'laravel': 'backend/laravel',
+  'spring': 'backend/spring',
+  'nestjs': 'backend/nestjs',
+  
+  // DevOps & IaC
+  'docker': 'deployment/docker',
+  'kubernetes': 'deployment/kubernetes',
+  'k8s': 'deployment/kubernetes',
+  'terraform': 'iac/terraform',
+  'terragrunt': 'iac/terragrunt',
+  'ansible': 'iac/ansible',
+  'puppet': 'iac/puppet',
+  'chef': 'iac/chef',
+  'helm': 'deployment/helm',
+  'jenkins': 'ci-cd/jenkins',
+  'gitlab': 'ci-cd/gitlab',
+  'github actions': 'ci-cd/github-actions',
+  'circleci': 'ci-cd/circleci',
+  
+  // Cloud
+  'aws': 'cloud/aws',
+  'azure': 'cloud/azure',
+  'gcp': 'cloud/gcp',
+  'gcloud': 'cloud/gcp',
+  'digitalocean': 'cloud/digitalocean',
+  'heroku': 'cloud/heroku',
+  'vercel': 'cloud/vercel',
+  'netlify': 'cloud/netlify',
+  
+  // Languages (for language-specific content)
+  'python': 'languages/python',
+  'javascript': 'languages/javascript',
+  'typescript': 'languages/typescript',
+  'java': 'languages/java',
+  'golang': 'languages/go',
+  'rust': 'languages/rust',
+  'ruby': 'languages/ruby',
+  'php': 'languages/php',
+  
+  // Other tools
+  'graphql': 'api/graphql',
+  'grpc': 'api/grpc',
+  'rabbitmq': 'messaging/rabbitmq',
+  'kafka': 'messaging/kafka',
+  'nginx': 'web-servers/nginx',
+  'apache': 'web-servers/apache',
+};
+
+/**
+ * Converts a title to a URL-friendly slug
+ */
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-')      // Replace spaces with hyphens
+    .replace(/-+/g, '-')       // Replace multiple hyphens with single
+    .replace(/^-+|-+$/g, '');  // Remove leading/trailing hyphens
+}
+
+/**
+ * Detects if the title indicates a "how-to" guide
+ */
+function isHowTo(title: string): boolean {
+  const lowerTitle = title.toLowerCase();
+  return ACTION_KEYWORDS.some(keyword => lowerTitle.includes(keyword));
+}
+
+/**
+ * Detects the main category from the title
+ */
+function detectCategory(title: string, tags?: string[], userCategory?: string): string {
+  const lowerTitle = title.toLowerCase();
+  const combinedText = lowerTitle + ' ' + (tags?.join(' ') || '').toLowerCase();
+  
+  // If user provided a category, validate and use it
+  if (userCategory) {
+    return userCategory.toLowerCase().replace(/\s+/g, '-');
+  }
+  
+  // First, try to find a known technology in title or tags
+  let foundTech: string | null = null;
+  let foundCategory: string | null = null;
+  
+  // Check for specific technologies first
+  for (const [tech, category] of Object.entries(TECH_SUBCATEGORIES)) {
+    if (combinedText.includes(tech)) {
+      return category;
+    }
+  }
+  
+  // Check for general categories and remember if we found one
+  for (const [category, keywords] of Object.entries(CATEGORY_PATTERNS)) {
+    if (keywords.some(keyword => combinedText.includes(keyword))) {
+      foundCategory = category;
+      break; // Don't return yet, we might find an unknown tech
+    }
+  }
+  
+  // Look for potential unknown technology names in tags first, then title
+  const unknownTech = detectUnknownTechnology(title, tags);
+  
+  if (unknownTech && foundCategory) {
+    // We have both a category context and an unknown tech
+    // Create a smart subcategory
+    if (foundCategory === 'iac' || foundCategory === 'deployment') {
+      return `iac/${unknownTech}`;
+    } else if (foundCategory === 'cloud') {
+      return `cloud/${unknownTech}`;
+    } else if (foundCategory === 'database') {
+      return `database/${unknownTech}`;
+    } else if (foundCategory === 'frontend' || foundCategory === 'backend') {
+      return `${foundCategory}/${unknownTech}`;
+    } else {
+      return `${foundCategory}/${unknownTech}`;
+    }
+  }
+  
+  // If we only found a category, use it
+  if (foundCategory) {
+    return foundCategory;
+  }
+  
+  // If we only found an unknown tech, put it under tools
+  if (unknownTech) {
+    return `tools/${unknownTech}`;
+  }
+  
+  // Default category
+  return 'general';
+}
+
+/**
+ * Detects potential technology/tool names from title and tags
+ */
+function detectUnknownTechnology(title: string, tags?: string[]): string | null {
+  // First check tags for tech-like names
+  if (tags) {
+    for (const tag of tags) {
+      const normalized = tag.toLowerCase();
+      // Skip if it's a known category keyword
+      const isKnownKeyword = Object.values(CATEGORY_PATTERNS)
+        .flat()
+        .includes(normalized);
+      
+      // Skip if it's already a known technology
+      const isKnownTech = Object.keys(TECH_SUBCATEGORIES).includes(normalized);
+      
+      if (!isKnownKeyword && !isKnownTech && normalized.length > 2) {
+        // Check if it looks like a technology name
+        if (/^[a-z][a-z0-9-]*[a-z0-9]$/i.test(tag)) {
+          return normalized;
+        }
+      }
+    }
+  }
+  
+  // Then check title for capitalized tech names
+  const techPattern = /\b([A-Z][a-zA-Z0-9]+)\b/g;
+  const matches = title.match(techPattern);
+  if (matches) {
+    for (const match of matches) {
+      const normalized = match.toLowerCase();
+      // Skip only common English words
+      const skipWords = ['how', 'to', 'the', 'and', 'or', 'for', 'with', 'using', 'new', 'get', 'set', 'add', 'use'];
+      
+      // Skip if it's a known technology (already handled)
+      const isKnownTech = Object.keys(TECH_SUBCATEGORIES).includes(normalized);
+      
+      // Skip if it's a known category keyword
+      const isKnownKeyword = Object.values(CATEGORY_PATTERNS)
+        .flat()
+        .includes(normalized);
+      
+      if (!skipWords.includes(normalized) && 
+          !isKnownTech && 
+          !isKnownKeyword && 
+          normalized.length > 2) {
+        return normalized;
+      }
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Extracts the main topic from the title
+ */
+function extractMainTopic(title: string): string {
+  let cleanTitle = title.toLowerCase();
+  
+  // Remove common prefixes
+  const prefixPatterns = [
+    /^(how to|guide to|tutorial on|implement|create|build|setup|configure|fix|debug) /i,
+    /^(a |an |the )/i,
+  ];
+  
+  for (const pattern of prefixPatterns) {
+    cleanTitle = cleanTitle.replace(pattern, '');
+  }
+  
+  // Extract key phrases
+  const importantPhrases = [
+    // Technology names
+    /\b(redis|mongodb|postgres|mysql|react|vue|angular|docker|kubernetes)\b/i,
+    // Common programming concepts
+    /\b(authentication|caching|validation|pagination|filtering|sorting)\b/i,
+    // Actions
+    /\b(find|search|create|update|delete|connect|query|optimize)\b/i,
+  ];
+  
+  for (const pattern of importantPhrases) {
+    const match = cleanTitle.match(pattern);
+    if (match) {
+      return slugify(match[0]);
+    }
+  }
+  
+  // If no specific phrase found, take first few meaningful words
+  const words = cleanTitle.split(' ').filter(word => word.length > 2);
+  return slugify(words.slice(0, 3).join(' '));
+}
+
+/**
+ * Generates a smart path from a title and optional metadata
+ * 
+ * Examples:
+ * - "How to find an element in Redis" -> "database/redis/how-to/find-element"
+ * - "JWT authentication best practices" -> "auth/jwt/best-practices"
+ * - "Fix MongoDB connection timeout" -> "database/mongodb/troubleshooting/connection-timeout"
+ * - "React hooks tutorial" -> "frontend/react/how-to/hooks"
+ */
+export function generatePathFromTitle(
+  title: string,
+  options?: {
+    category?: string;
+    tags?: string[];
+    priority?: string;
+  }
+): string {
+  const { category: providedCategory, tags, priority } = options || {};
+  
+  // Detect category
+  const detectedCategory = detectCategory(title, tags, providedCategory);
+  
+  // Determine subcategory based on content type
+  let subcategory = '';
+  const lowerTitle = title.toLowerCase();
+  
+  if (isHowTo(title)) {
+    subcategory = 'how-to';
+  } else if (lowerTitle.includes('error') || lowerTitle.includes('fix') || lowerTitle.includes('issue')) {
+    subcategory = 'troubleshooting';
+  } else if (lowerTitle.includes('best practice') || lowerTitle.includes('pattern')) {
+    subcategory = 'best-practices';
+  } else if (lowerTitle.includes('example') || lowerTitle.includes('sample')) {
+    subcategory = 'examples';
+  } else if (lowerTitle.includes('guide') || lowerTitle.includes('tutorial')) {
+    subcategory = 'guides';
+  }
+  
+  // Extract filename from title
+  const filename = extractMainTopic(title);
+  
+  // Build path components
+  const pathComponents = [detectedCategory];
+  
+  // Add subcategory if detected
+  if (subcategory) {
+    pathComponents.push(subcategory);
+  }
+  
+  // Add filename
+  pathComponents.push(filename);
+  
+  // Join components and add .json extension
+  return pathComponents.filter(Boolean).join('/') + '.json';
+}
+
+/**
+ * Suggests alternative paths based on the title
+ * Useful for giving users options
+ */
+export function suggestPaths(
+  title: string,
+  options?: {
+    tags?: string[];
+    priority?: string;
+  }
+): string[] {
+  const suggestions: string[] = [];
+  
+  // Generate primary suggestion
+  const primaryPath = generatePathFromTitle(title, options);
+  suggestions.push(primaryPath);
+  
+  // Generate alternative categorizations
+  const lowerTitle = title.toLowerCase();
+  const possibleCategories = Object.entries(CATEGORY_PATTERNS)
+    .filter(([_, keywords]) => keywords.some(k => lowerTitle.includes(k)))
+    .map(([category]) => category);
+  
+  for (const category of possibleCategories.slice(0, 2)) {
+    const altPath = generatePathFromTitle(title, { ...options, category });
+    if (altPath !== primaryPath) {
+      suggestions.push(altPath);
+    }
+  }
+  
+  return suggestions;
+}
+
+/**
+ * Validates and normalizes a user-provided path if they choose to override
+ */
+export function normalizeUserPath(userPath: string): string {
+  let normalized = userPath.trim().toLowerCase();
+  
+  // Remove leading/trailing slashes
+  normalized = normalized.replace(/^\/+|\/+$/g, '');
+  
+  // Ensure .json extension
+  if (!normalized.endsWith('.json')) {
+    normalized += '.json';
+  }
+  
+  // Replace spaces and special characters in path
+  const parts = normalized.split('/');
+  const normalizedParts = parts.map(part => {
+    // Keep the .json extension intact
+    if (part.endsWith('.json')) {
+      const name = part.slice(0, -5);
+      return slugify(name) + '.json';
+    }
+    return slugify(part);
+  });
+  
+  return normalizedParts.join('/');
+}

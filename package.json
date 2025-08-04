@@ -8,12 +8,21 @@
     "knowledge-tree-mcp": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run copy-config",
+    "copy-config": "mkdir -p dist/config && cp -r src/config/*.json dist/config/",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["mcp", "knowledge", "ai", "documentation"],
+  "keywords": [
+    "mcp",
+    "knowledge",
+    "ai",
+    "documentation"
+  ],
   "author": "sofianedjerbi",
   "license": "MIT",
   "repository": {
@@ -25,14 +34,17 @@
     "url": "https://github.com/sofianedjerbi/knowledge-tree-mcp/issues"
   },
   "dependencies": {
+    "@fastify/static": "^6.0.0",
+    "@fastify/websocket": "^8.0.0",
     "@modelcontextprotocol/sdk": "^0.6.0",
     "fastify": "^4.0.0",
-    "@fastify/static": "^6.0.0",
-    "@fastify/websocket": "^8.0.0"
+    "glob": "^10.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "tsx": "^4.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^3.2.4"
   }
 }

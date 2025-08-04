@@ -3,79 +3,471 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Knowledge Tree Visualization</title>
+    <title>Knowledge Tree Dashboard</title>
+    
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Vis.js for network graph -->
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    
+    <!-- Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Code highlighting -->
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-dark.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
     <style>
         * {
-            box-sizing: border-box;
-        }
-        body {
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
-            background: #1a1a1a;
-            color: #fff;
-        }
-        #network {
-            width: 100vw;
-            height: 100vh;
-            border: none;
-        }
-        #info {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.9);
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 320px;
-            font-size: 14px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        }
-        #search {
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            padding: 20px;
-            border-radius: 8px;
-            width: 520px;
-            max-width: 90vw;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
             box-sizing: border-box;
         }
-        #searchInput {
+
+        :root {
+            --primary-bg: #0f1419;
+            --secondary-bg: #1a1f2e;
+            --card-bg: #252a3a;
+            --accent-bg: #2d3348;
+            --primary-text: #ffffff;
+            --secondary-text: #a0a9c0;
+            --muted-text: #6b7280;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --border-color: #374151;
+            --hover-bg: #374151;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: var(--primary-bg);
+            color: var(--primary-text);
+            overflow-x: hidden;
+        }
+
+        /* Dashboard Layout */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            grid-template-rows: 60px 1fr;
+            grid-template-areas: 
+                "sidebar header"
+                "sidebar main";
+            height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            grid-area: header;
+            background: var(--secondary-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-text);
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-red);
+            transition: background-color 0.3s;
+        }
+
+        .status-indicator.connected {
+            background: var(--accent-green);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            grid-area: sidebar;
+            background: var(--secondary-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 24px 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            padding: 0 24px 32px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+
+        .brand-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-text);
+        }
+
+        .brand-subtitle {
+            font-size: 12px;
+            color: var(--muted-text);
+            margin-top: 4px;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 8px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 24px;
+            color: var(--secondary-text);
+            text-decoration: none;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: var(--accent-bg);
+            color: var(--primary-text);
+            border-left-color: var(--accent-blue);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            opacity: 0.7;
+            flex-shrink: 0;
+        }
+
+        /* Main Content */
+        .main-content {
+            grid-area: main;
+            padding: 24px;
+            overflow-y: auto;
+            background: var(--primary-bg);
+            position: relative;
+            z-index: 1;
+            height: calc(100vh - 60px);  /* Full height minus header */
+        }
+
+        /* Page Views */
+        .page-view {
+            display: none;
             width: 100%;
-            padding: 12px 16px;
-            font-size: 16px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            min-height: 500px; /* Ensure minimum height */
+        }
+
+        .page-view.active {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            min-height: 500px !important;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--secondary-bg);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-text);
+        }
+
+        .card-subtitle {
+            font-size: 14px;
+            color: var(--muted-text);
+            margin-top: 4px;
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            gap: 24px;
+            width: 100%;
+            min-height: 100%;
+        }
+
+        .grid-cols-1 { grid-template-columns: 1fr; }
+        .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+        /* Metric Items */
+        .metric-item {
+            text-align: center;
+            padding: 20px;
+            background: var(--accent-bg);
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .metric-item:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .metric-label {
+            font-size: 14px;
+            color: var(--muted-text);
+            margin-bottom: 8px;
+        }
+
+        .metric-change {
+            font-size: 12px;
+            padding: 4px 8px;
             border-radius: 6px;
-            color: #fff;
-            margin-bottom: 15px;
-            transition: border-color 0.3s, background 0.3s;
+            display: inline-block;
         }
-        #searchInput:focus {
-            outline: none;
-            border-color: #4444ff;
-            background: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 0 0 3px rgba(68, 68, 255, 0.2);
+
+        .metric-change.positive {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-green);
         }
-        .search-filters {
+
+        .metric-change.negative {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--accent-red);
+        }
+
+        /* Tag Cloud Panel */
+        #tagCloudPanel {
+            min-height: 180px;
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .tag-cloud-item {
+            display: inline-block;
+            padding: 6px 12px;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent-blue);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .tag-cloud-item:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+        }
+
+        .tag-count {
+            font-size: 11px;
+            color: var(--muted-text);
+            margin-left: 6px;
+            font-weight: 600;
+        }
+
+        /* Different tag sizes based on frequency */
+        .tag-size-1 { font-size: 11px; }
+        .tag-size-2 { font-size: 12px; }
+        .tag-size-3 { font-size: 13px; }
+        .tag-size-4 { font-size: 14px; }
+        .tag-size-5 { font-size: 15px; font-weight: 600; }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 16px 0;
+        }
+
+        .chart-container.large {
+            height: 400px;
+        }
+
+        /* Network Graph */
+        .network-container {
+            height: calc(100vh - 240px);
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--accent-bg);
+            margin-top: 12px;
+        }
+        
+        /* Tab group styling */
+        .tab-group {
+            display: flex;
+            background: var(--secondary-bg);
+            border-radius: 8px;
+            padding: 4px;
+            gap: 4px;
+        }
+        
+        .tab-button {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: var(--secondary-text);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+        
+        .tab-button:hover {
+            background: var(--accent-bg);
+            color: var(--primary-text);
+        }
+        
+        .tab-button.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+        
+        /* Graph and Tree page specific adjustments */
+        #graph-page .network-container,
+        #tree-page .network-container {
+            height: calc(100vh - 264px); /* Account for the 12px top margin + 12px bottom space */
+        }
+        
+        .network-fullscreen {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            border-radius: 0 !important;
+            background: var(--primary-bg) !important;
+        }
+        
+        .network-fullscreen-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 10000;
             display: flex;
             gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 12px;
+            align-items: center;
+            background: rgba(30, 41, 59, 0.95);
+            padding: 12px 16px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
+        
+        .network-fullscreen-controls button {
+            background: var(--card-bg);
+            color: var(--primary-text);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+        
+        .network-fullscreen-controls button:hover {
+            background: var(--accent-bg);
+        }
+
+        /* Search */
+        .search-container {
+            margin-bottom: 24px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 16px 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--primary-text);
+            font-size: 16px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: var(--muted-text);
+        }
+
+        /* Priority Colors */
+        .priority-critical { color: var(--accent-red); }
+        .priority-required { color: var(--accent-yellow); }
+        .priority-common { color: var(--accent-green); }
+        .priority-edge-case { color: var(--accent-purple); }
+
+        /* Priority Filter */
         .priority-filter {
             display: flex;
             gap: 12px;
-            flex-wrap: nowrap;
+            flex-wrap: wrap;
             align-items: center;
             width: 100%;
             justify-content: space-between;
         }
+        
         .priority-filter label {
             display: flex;
             align-items: center;
@@ -83,552 +475,2207 @@
             cursor: pointer;
             font-size: 12px;
             font-weight: 500;
-            padding: 6px 10px;
-            border-radius: 4px;
+            padding: 8px 16px;
+            border-radius: 8px;
             transition: background 0.2s;
             white-space: nowrap;
             flex: 1;
             justify-content: center;
             background: rgba(255, 255, 255, 0.05);
+            border: 1px solid transparent;
         }
+        
         .priority-filter label:hover {
             background: rgba(255, 255, 255, 0.1);
         }
+        
         .priority-filter label:has(input:checked) {
-            background: rgba(68, 68, 255, 0.2);
-            border: 1px solid rgba(68, 68, 255, 0.3);
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.3);
         }
+        
         .priority-filter input[type="checkbox"] {
             cursor: pointer;
             transform: scale(1.2);
         }
-        #searchResults {
-            max-height: 300px;
-            overflow-y: auto;
-            overflow-x: hidden;
-            margin-top: 10px;
-            display: none;
-            width: 100%;
-            box-sizing: border-box;
+
+        /* Tag Cloud Enhanced */
+        .tag-cloud {
+            margin: 15px 0;
         }
-        .search-result {
-            padding: 8px;
-            margin: 4px 0;
+        
+        .tag-cloud-item {
+            display: inline-block;
+            padding: 6px 12px;
+            margin: 4px;
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 12px;
+            color: #ccc;
+            transition: all 0.2s;
             cursor: pointer;
-            transition: background 0.2s;
-            overflow: hidden;
-            word-break: break-all;
+            position: relative;
         }
-        .search-result:hover {
-            background: rgba(255, 255, 255, 0.1);
+        
+        .tag-cloud-item:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            color: var(--accent-blue);
         }
-        .search-result-path {
-            font-size: 11px;
+        
+        .tag-count {
+            font-size: 10px;
             color: #888;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            word-break: break-all;
-            white-space: normal;
-            display: block;
-            width: 100%;
+            margin-left: 4px;
+            font-weight: 600;
         }
-        .search-result-problem {
+        
+        /* Different tag sizes based on frequency */
+        .tag-size-1 { font-size: 11px; opacity: 0.7; }
+        .tag-size-2 { font-size: 12px; opacity: 0.8; }
+        .tag-size-3 { font-size: 13px; opacity: 0.9; }
+        .tag-size-4 { font-size: 14px; opacity: 1; }
+        .tag-size-5 { font-size: 15px; opacity: 1; font-weight: 500; }
+
+        /* Tree view styles - CLI-like */
+        .tree-view {
+            font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
             font-size: 13px;
-            margin-top: 4px;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            word-break: break-word;
-            white-space: normal;
-            display: block;
-            width: 100%;
+            line-height: 1;
+            color: var(--primary-text);
+            background: var(--secondary-bg);
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre;
         }
-        .search-info {
-            font-size: 13px;
-            color: #888;
-            margin-top: 8px;
+        
+        .tree-line {
+            font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+            display: block;
+            height: 18px;
+            line-height: 18px;
+            white-space: nowrap;
+            position: relative;
+            padding: 0;
+            margin: 0;
+            border-radius: 3px;
+            transition: all 0.2s ease;
+        }
+        
+        .tree-line.clickable {
+            cursor: pointer;
+        }
+        
+        .tree-line:hover {
+            background: rgba(59, 130, 246, 0.15);
+            box-shadow: inset 3px 0 0 var(--accent-blue);
+        }
+        
+        .tree-line.clickable:hover .tree-label {
+            color: var(--accent-blue);
             font-weight: 500;
         }
-        #details {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.9);
-            padding: 20px;
+        
+        .tree-line.clickable:hover .tree-icon {
+            transform: scale(1.1);
+        }
+        
+        /* Highlight child items on hover */
+        .tree-child-highlight {
+            background: rgba(16, 185, 129, 0.08);
+            box-shadow: inset 2px 0 0 rgba(16, 185, 129, 0.5);
+        }
+        
+        .tree-child-highlight .tree-branch,
+        .tree-child-highlight .tree-indent {
+            color: var(--accent-green);
+            opacity: 0.7;
+        }
+        
+        .tree-child-highlight .tree-label {
+            color: var(--accent-green);
+        }
+        
+        .tree-indent {
+            color: var(--secondary-text);
+            opacity: 0.4;
+            user-select: none;
+            white-space: pre;
+        }
+        
+        .tree-branch {
+            color: var(--secondary-text);
+            opacity: 0.4;
+            user-select: none;
+            white-space: pre;
+        }
+        
+        .tree-icon {
+            width: 14px;
+            height: 14px;
+            margin: 0 2px 0 1px;
+            flex-shrink: 0;
+            vertical-align: text-bottom;
+            transition: transform 0.2s ease;
+            display: inline-block;
+        }
+        
+        .tree-folder-icon {
+            color: var(--accent-yellow);
+        }
+        
+        .tree-file-icon {
+            color: var(--secondary-text);
+        }
+        
+        .tree-label {
+            color: var(--primary-text);
+        }
+        
+        .tree-folder-label {
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+        
+        .tree-count {
+            font-size: 10px;
+            color: var(--secondary-text);
+            opacity: 0.6;
+            margin-left: 2px;
+            padding: 0 4px;
             border-radius: 8px;
-            max-width: 450px;
+            background: var(--accent-bg);
+            display: inline-block;
+        }
+        
+        /* Highlight folders with many items */
+        .tree-count-high {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent-yellow);
+            font-weight: 600;
+        }
+        
+        .tree-priority {
+            font-size: 10px;
+            padding: 0 4px;
+            border-radius: 3px;
+            margin-left: 2px;
+            display: inline-block;
+        }
+        
+        .tree-node {
+            margin: 0;
+            padding: 0;
+        }
+        
+        .tree-children {
+            margin: 0;
+            padding: 0;
+        }
+        
+        .tree-node.collapsed .tree-children {
             display: none;
-            font-size: 14px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         }
-        #stats {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.9);
-            padding: 20px;
+        
+        .tree-toggle {
+            display: inline-block;
+            width: 10px;
+            text-align: center;
+            color: var(--secondary-text);
+            opacity: 0.6;
+            margin: 0;
+            padding: 0;
+            font-size: 11px;
+            cursor: pointer;
+            user-select: none;
+            vertical-align: baseline;
+        }
+        
+        /* Simple tree view styles */
+        .simple-tree {
+            font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            background: var(--secondary-bg);
+            padding: 16px;
             border-radius: 8px;
-            width: 450px;
-            max-height: 600px;
-            overflow-y: auto;
-            font-size: 14px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            color: var(--primary-text);
+            height: 100%;
+            overflow: auto;
         }
-        .tab-buttons {
+        
+        .tree-folder, .tree-file {
+            display: block;
+            padding: 4px 0;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .tree-folder:hover, .tree-file:hover {
+            background: rgba(59, 130, 246, 0.15);
+        }
+        
+        .tree-toggle {
+            display: inline-block;
+            width: 12px;
+            color: var(--secondary-text);
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .tree-icon {
+            width: 16px;
+            height: 16px;
+            margin: 0 4px;
+            vertical-align: middle;
+        }
+        
+        .tree-label {
+            color: var(--primary-text);
+        }
+        
+        .tree-folder .tree-label {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+        
+        .tree-count {
+            font-size: 11px;
+            color: var(--secondary-text);
+            opacity: 0.6;
+            margin-left: 4px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            background: var(--accent-bg);
+        }
+        
+        .tree-priority {
+            font-size: 11px;
+            padding: 1px 6px;
+            border-radius: 3px;
+            margin-left: 8px;
+        }
+        
+        .tree-children {
+            margin-left: 0;
+        }
+        
+        .tree-item {
+            margin: 0;
+        }
+        
+        /* Priority Legend */
+        .priority-legend {
             display: flex;
-            margin-bottom: 10px;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
+            gap: 16px;
+            flex-wrap: wrap;
+            margin: 16px 0;
         }
-        .tab-button {
-            padding: 8px 16px;
+
+        .priority-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .priority-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        /* Table */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table th {
+            background: var(--secondary-bg);
+            font-weight: 600;
+            color: var(--primary-text);
+            font-size: 14px;
+        }
+
+        .table td {
+            color: var(--secondary-text);
+            font-size: 14px;
+        }
+
+        .table tbody tr:hover {
+            background: var(--accent-bg);
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--muted-text);
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-top: 2px solid var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 12px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "header"
+                    "main";
+            }
+            
+            .sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .grid-cols-2,
+            .grid-cols-3,
+            .grid-cols-4 {
+                grid-template-columns: 1fr;
+            }
+            
+            .main-content {
+                padding: 16px;
+            }
+            
+            .metric-item {
+                padding: 16px;
+            }
+            
+            .metric-value {
+                font-size: 24px;
+            }
+        }
+
+        /* Entry Details Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 12px;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            margin: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-close {
             background: none;
             border: none;
-            color: #888;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
-            font-size: 14px;
-            font-weight: 500;
-        }
-        .tab-button.active {
-            color: #fff;
-            border-bottom-color: #4444ff;
-        }
-        .tab-button:hover {
-            color: #ccc;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .stat-item {
-            background: rgba(255,255,255,0.05);
-            padding: 8px;
-            border-radius: 4px;
-        }
-        .stat-value {
+            color: var(--muted-text);
             font-size: 24px;
-            font-weight: bold;
-            color: #4444ff;
-        }
-        .stat-label {
-            font-size: 12px;
-            color: #888;
-            margin-top: 4px;
-        }
-        .priority-bar {
-            display: flex;
-            height: 4px;
-            border-radius: 2px;
-            overflow: hidden;
-            margin: 5px 0;
-        }
-        .priority-segment {
-            height: 100%;
-        }
-        .recent-item {
-            padding: 12px;
-            margin: 6px 0;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 6px;
-            border-left: 4px solid transparent;
             cursor: pointer;
-            transition: background 0.2s;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
         }
-        .recent-item:hover {
-            background: rgba(255, 255, 255, 0.1);
+
+        .modal-close:hover {
+            background: var(--hover-bg);
         }
-        .recent-item.added {
-            border-left-color: #44ff44;
+
+        .modal-body {
+            padding: 24px;
         }
-        .recent-item.modified {
-            border-left-color: #ff9944;
-        }
-        .recent-path {
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent-blue);
+            border-radius: 6px;
             font-size: 12px;
-            color: #888;
-            font-weight: 500;
+            margin: 2px 4px 2px 0;
         }
-        .recent-problem {
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted-text);
+        }
+
+        .empty-state-icon {
+            margin-bottom: 16px;
+            color: var(--muted-text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .empty-state-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .empty-state-description {
+            font-size: 14px;
+        }
+
+        /* Tag Cloud */
+        .tag-cloud {
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+
+        .tag-cloud-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 14px;
+            background: var(--secondary-bg);
+            color: var(--secondary-text);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
             font-size: 13px;
-            margin-top: 4px;
-            line-height: 1.3;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            white-space: nowrap;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
-        .recent-meta {
-            font-size: 11px;
-            color: #666;
-            margin-top: 4px;
+
+        .tag-cloud-item:hover {
+            background: var(--accent-bg);
+            color: var(--accent-blue);
+            border-color: var(--accent-blue);
+            transform: translateY(-1px);
         }
-        .priority-CRITICAL { color: #ff4444; }
-        .priority-REQUIRED { color: #ff9944; }
-        .priority-COMMON { color: #44ff44; }
-        .priority-EDGE-CASE { color: #4444ff; }
-        #status {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            padding: 5px 10px;
-            border-radius: 3px;
+
+        .tag-cloud-item .tag-count {
+            font-size: 0.8em;
+            opacity: 0.6;
+            font-weight: 400;
+            padding: 2px 6px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        /* Tag size variations - clean and minimal */
+        .tag-cloud-item.tag-size-1 { 
             font-size: 12px;
+            opacity: 0.7;
         }
-        .status-connected { background: #44ff44; color: #000; }
-        .status-disconnected { background: #ff4444; color: #fff; }
-        pre { 
-            background: rgba(255, 255, 255, 0.1); 
-            padding: 10px; 
-            border-radius: 3px;
-            overflow-x: auto;
+        .tag-cloud-item.tag-size-2 { 
+            font-size: 13px;
+            opacity: 0.8;
+        }
+        .tag-cloud-item.tag-size-3 { 
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .tag-cloud-item.tag-size-4 { 
+            font-size: 15px;
+            font-weight: 600;
+            opacity: 1;
+        }
+        .tag-cloud-item.tag-size-5 { 
+            font-size: 16px;
+            font-weight: 600;
+            background: var(--accent-bg);
+            color: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+
+        .tag-count {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 2px 6px;
+            background: rgba(59, 130, 246, 0.2);
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .tag-cloud-empty {
+            color: var(--muted-text);
+            font-style: italic;
+            padding: 40px 20px;
         }
     </style>
 </head>
 <body>
-    <div id="network"></div>
-    <div id="search">
-        <input type="text" id="searchInput" placeholder="Search knowledge entries... (* = any, ? = one char, Ctrl+F)" />
-        <div class="search-filters">
-            <div class="priority-filter">
-                <label class="priority-CRITICAL">
-                    <input type="checkbox" name="priority" value="CRITICAL" checked>
-                    CRITICAL
-                </label>
-                <label class="priority-REQUIRED">
-                    <input type="checkbox" name="priority" value="REQUIRED" checked>
-                    REQUIRED
-                </label>
-                <label class="priority-COMMON">
-                    <input type="checkbox" name="priority" value="COMMON" checked>
-                    COMMON
-                </label>
-                <label class="priority-EDGE-CASE">
-                    <input type="checkbox" name="priority" value="EDGE-CASE" checked>
-                    EDGE-CASE
-                </label>
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <h1 class="header-title">Knowledge Tree Dashboard</h1>
+            <div class="connection-status">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span id="statusText">Connecting...</span>
             </div>
         </div>
-        <div class="search-info" id="searchInfo"></div>
-        <div id="searchResults"></div>
-    </div>
-    <div id="info">
-        <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">Knowledge Tree</h2>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
-            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; text-align: center;">
-                <div style="font-size: 20px; font-weight: bold; color: #4444ff;" id="nodeCount">0</div>
-                <div style="font-size: 12px; color: #888; margin-top: 2px;">Nodes</div>
-            </div>
-            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; text-align: center;">
-                <div style="font-size: 20px; font-weight: bold; color: #4444ff;" id="edgeCount">0</div>
-                <div style="font-size: 12px; color: #888; margin-top: 2px;">Links</div>
-            </div>
-        </div>
-        <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 500;">Priority Legend</h3>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-            <div class="priority-CRITICAL" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(255,68,68,0.1); border-radius: 4px; border-left: 3px solid #ff4444;">
-                <span style="font-size: 16px;">●</span>
-                <span style="font-weight: 500;">CRITICAL</span>
-            </div>
-            <div class="priority-REQUIRED" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(255,153,68,0.1); border-radius: 4px; border-left: 3px solid #ff9944;">
-                <span style="font-size: 16px;">●</span>
-                <span style="font-weight: 500;">REQUIRED</span>
-            </div>
-            <div class="priority-COMMON" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(68,255,68,0.1); border-radius: 4px; border-left: 3px solid #44ff44;">
-                <span style="font-size: 16px;">●</span>
-                <span style="font-weight: 500;">COMMON</span>
-            </div>
-            <div class="priority-EDGE-CASE" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(68,68,255,0.1); border-radius: 4px; border-left: 3px solid #4444ff;">
-                <span style="font-size: 16px;">●</span>
-                <span style="font-weight: 500;">EDGE-CASE</span>
-            </div>
-        </div>
-    </div>
-    <div id="details">
-        <h3 id="detailsTitle" style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Select a node</h3>
-        <div id="detailsContent"></div>
-    </div>
-    <div id="stats">
-        <div class="tab-buttons">
-            <button class="tab-button active" data-tab="overview">Overview</button>
-            <button class="tab-button" data-tab="recent">Recent</button>
-        </div>
-        <div id="overview-tab" class="tab-content active">
-            <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Knowledge Stats</h3>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-value" id="totalEntries">-</div>
-                    <div class="stat-label">Total Entries</div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-title">
+                    <i data-lucide="book-open" style="width: 24px; height: 24px; margin-right: 8px; vertical-align: middle;"></i>
+                    Knowledge Tree
                 </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="withRelations">-</div>
-                    <div class="stat-label">With Links</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="withCode">-</div>
-                    <div class="stat-label">With Code</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="orphanedCount">-</div>
-                    <div class="stat-label">Orphaned</div>
-                </div>
+                <div class="brand-subtitle">MCP Dashboard</div>
             </div>
-            <h4 style="margin: 15px 0 8px 0; font-size: 14px; font-weight: 500;">Priority Distribution</h4>
-            <div class="priority-bar" id="priorityBar"></div>
-            <div id="priorityLegend" style="font-size: 10px; margin-top: 5px;"></div>
-            <h4 style="margin: 15px 0 8px 0; font-size: 14px; font-weight: 500;">Categories</h4>
-            <div id="categoriesInfo"></div>
+            
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="#" class="nav-link active" data-page="overview">
+                            <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                            Overview
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-page="graph">
+                            <i data-lucide="network" class="nav-icon"></i>
+                            Connections
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-page="tree">
+                            <i data-lucide="folder-tree" class="nav-icon"></i>
+                            Explorer
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-page="analytics">
+                            <i data-lucide="bar-chart-3" class="nav-icon"></i>
+                            Analytics
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-page="recent">
+                            <i data-lucide="clock" class="nav-icon"></i>
+                            Recent Activity
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-page="search">
+                            <i data-lucide="search" class="nav-icon"></i>
+                            Search
+                        </a>
+                    </li>
+                </ul>
+            </nav>
         </div>
-        <div id="recent-tab" class="tab-content">
-            <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Recent Changes</h3>
-            <div style="font-size: 13px; color: #888; margin-bottom: 12px;">
-                Last <span id="recentDays">7</span> days
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Overview Page -->
+            <div class="page-view active" id="overview-page">
+                <!-- Top Row: Activity Trend + Tag Cloud Panel -->
+                <div class="grid grid-cols-2" style="margin-bottom: 32px; gap: 24px;">
+                    <!-- Activity Trend Panel -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Activity Trend</div>
+                            <div class="card-subtitle">Usage over the last 30 days</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="activityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tag Cloud Panel -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Popular Tags</div>
+                            <div class="card-subtitle">Most frequently used tags</div>
+                        </div>
+                        <div class="card-body">
+                            <div id="tagCloudPanel">
+                                <div class="loading">
+                                    <div class="spinner"></div>
+                                    Loading tags...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row with Key Metrics -->
+                <div class="grid grid-cols-3" style="margin-bottom: 32px;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Priority Distribution</div>
+                            <div class="card-subtitle">Knowledge entries by priority level</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="priorityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Key Metrics</div>
+                            <div class="card-subtitle">Knowledge base statistics</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="grid grid-cols-2" style="gap: 16px;">
+                                <div class="metric-item">
+                                    <div class="metric-value priority-critical" id="totalEntries">-</div>
+                                    <div class="metric-label">Total Entries</div>
+                                    <div class="metric-change positive" id="entriesChange">+0 today</div>
+                                </div>
+                                <div class="metric-item">
+                                    <div class="metric-value priority-required" id="totalConnections">-</div>
+                                    <div class="metric-label">Connected Entries</div>
+                                    <div class="metric-change positive" id="connectionsChange">+0 today</div>
+                                </div>
+                                <div class="metric-item">
+                                    <div class="metric-value priority-common" id="totalSearches">-</div>
+                                    <div class="metric-label">Searches (30d)</div>
+                                    <div class="metric-change positive" id="searchesChange">+0 today</div>
+                                </div>
+                                <div class="metric-item">
+                                    <div class="metric-value priority-edge-case" id="totalActivity">-</div>
+                                    <div class="metric-label">Activity (30d)</div>
+                                    <div class="metric-change positive" id="activityChange">+0 today</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Activity Types</div>
+                            <div class="card-subtitle">Breakdown by activity type</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="activityRingChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Recent Activity Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Recent Activity</div>
+                        <div class="card-subtitle">Latest knowledge base changes</div>
+                    </div>
+                    <div class="card-body">
+                        <div id="recentActivityTable">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                Loading recent activity...
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div id="recentList"></div>
+
+            <!-- Visualizer Page -->
+            <div class="page-view" id="graph-page">
+                <div class="card">
+                    <div class="card-header">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div class="card-title">Knowledge Connections</div>
+                                <div class="card-subtitle">Interactive network graph showing relationships between entries</div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button id="physicsToggle" onclick="togglePhysics()" style="background: var(--accent-red); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;" title="Toggle continuous physics simulation">
+                                    <i data-lucide="zap" style="width: 16px; height: 16px;"></i>
+                                    <span id="physicsToggleText">Disable Physics</span>
+                                </button>
+                                <button onclick="relayoutGraph()" style="background: var(--accent-green); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+                                    <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                                    Re-layout
+                                </button>
+                                <button onclick="toggleFullscreen(event)" style="background: var(--accent-blue); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+                                    <i data-lucide="maximize" style="width: 16px; height: 16px;"></i>
+                                    Fullscreen
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding: 12px;">
+                        <div class="priority-legend">
+                            <div class="priority-item">
+                                <div class="priority-dot" style="background: var(--accent-red);"></div>
+                                <span>Critical</span>
+                            </div>
+                            <div class="priority-item">
+                                <div class="priority-dot" style="background: var(--accent-yellow);"></div>
+                                <span>Required</span>
+                            </div>
+                            <div class="priority-item">
+                                <div class="priority-dot" style="background: var(--accent-green);"></div>
+                                <span>Common</span>
+                            </div>
+                            <div class="priority-item">
+                                <div class="priority-dot" style="background: var(--accent-purple);"></div>
+                                <span>Edge Case</span>
+                            </div>
+                        </div>
+                        <div class="network-container" id="networkContainer"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tree Page -->
+            <div class="page-view" id="tree-page">
+                <div class="card">
+                    <div class="card-header">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div class="card-title">Knowledge Explorer</div>
+                                <div class="card-subtitle">Browse knowledge entries in a hierarchical folder structure</div>
+                            </div>
+                            <button onclick="toggleFullscreen(event)" style="background: var(--accent-blue); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+                                <i data-lucide="maximize" style="width: 16px; height: 16px;"></i>
+                                Fullscreen
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding: 12px;">
+                        <div class="network-container">
+                            <div id="fancytree" style="height: 100%; overflow: auto;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Page -->
+            <div class="page-view" id="analytics-page">
+                <div class="grid grid-cols-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Search Analytics</div>
+                            <div class="card-subtitle">Search patterns and popular queries</div>
+                        </div>
+                        <div class="card-body" id="searchAnalytics">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                Loading search analytics...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Tool Usage</div>
+                            <div class="card-subtitle">MCP tool call statistics</div>
+                        </div>
+                        <div class="card-body" id="toolAnalytics">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                Loading tool analytics...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <div class="card-title">Usage Patterns</div>
+                        <div class="card-subtitle">Hourly activity distribution</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container large">
+                            <canvas id="hourlyActivityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity Page -->
+            <div class="page-view" id="recent-page">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Recent Changes</div>
+                        <div class="card-subtitle">Latest updates to the knowledge base</div>
+                    </div>
+                    <div class="card-body" id="recentChanges">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Loading recent changes...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Page -->
+            <div class="page-view" id="search-page">
+                <div class="search-container">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search knowledge entries... (* = wildcard, ? = single char)">
+                    
+                    <!-- Priority Filters -->
+                    <div class="priority-filter" style="margin-top: 16px;">
+                        <label class="priority-critical">
+                            <input type="checkbox" name="priority" value="CRITICAL" checked>
+                            CRITICAL
+                        </label>
+                        <label class="priority-required">
+                            <input type="checkbox" name="priority" value="REQUIRED" checked>
+                            REQUIRED
+                        </label>
+                        <label class="priority-common">
+                            <input type="checkbox" name="priority" value="COMMON" checked>
+                            COMMON
+                        </label>
+                        <label class="priority-edge-case">
+                            <input type="checkbox" name="priority" value="EDGE-CASE" checked>
+                            EDGE-CASE
+                        </label>
+                    </div>
+                </div>
+                
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Search Results</div>
+                        <div class="card-subtitle" id="searchResultsSubtitle">Enter a search query to find knowledge entries</div>
+                    </div>
+                    <div class="card-body" id="searchResults">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i data-lucide="search" style="width: 48px; height: 48px;"></i>
+                            </div>
+                            <div class="empty-state-title">Search Knowledge Base</div>
+                            <div class="empty-state-description">Use the search box above to find specific knowledge entries</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Closing main-content -->
+    </div>
+    <!-- Closing dashboard -->
+    </div>
+
+    <!-- Entry Details Modal -->
+    <div class="modal" id="entryModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Entry Details</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalContent">
+                <!-- Entry details will be loaded here -->
+            </div>
         </div>
     </div>
-    <div id="status" class="status-disconnected">Connecting...</div>
 
     <script>
-        // Create network
-        const container = document.getElementById('network');
-        const data = {
-            nodes: new vis.DataSet(),
-            edges: new vis.DataSet()
-        };
-        
-        const options = {
-            nodes: {
-                shape: 'dot',
-                font: {
-                    color: '#ffffff',
-                    size: 12
-                },
-                borderWidth: 2
-            },
-            edges: {
-                arrows: {
-                    to: { enabled: true, scaleFactor: 0.5 }
-                },
-                color: {
-                    color: '#848484',
-                    highlight: '#ffffff'
-                },
-                font: {
-                    color: '#ffffff',
-                    size: 10,
-                    align: 'middle'
-                }
-            },
-            physics: {
-                forceAtlas2Based: {
-                    gravitationalConstant: -50,
-                    centralGravity: 0.01,
-                    springLength: 100,
-                    springConstant: 0.08
-                },
-                solver: 'forceAtlas2Based',
-                stabilization: {
-                    iterations: 150
-                }
-            },
-            interaction: {
-                hover: true,
-                tooltipDelay: 200
-            }
-        };
-        
-        const network = new vis.Network(container, data, options);
-        
-        // Priority colors
-        const priorityColors = {
-            'CRITICAL': '#ff4444',
-            'REQUIRED': '#ff9944',
-            'COMMON': '#44ff44',
-            'EDGE-CASE': '#4444ff'
-        };
-        
-        // WebSocket connection
+        // Global variables
         let ws;
         let knowledgeMap = new Map();
-        
+        let currentStats = null;
+        let currentAnalytics = null;
+        let network = null;
+        let charts = {};
+
+        // Priority colors
+        const priorityColors = {
+            'CRITICAL': '#ef4444',    // red
+            'REQUIRED': '#f59e0b',    // yellow
+            'COMMON': '#10b981',      // green
+            'EDGE-CASE': '#8b5cf6'    // purple
+        };
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Lucide icons
+            lucide.createIcons();
+            
+            setupNavigation();
+            setupSearch();
+            connectWebSocket();
+            
+            // Load initial data after WebSocket connects
+            setTimeout(() => {
+                loadOverviewData();
+            }, 500);
+        });
+
+        // Navigation
+        function setupNavigation() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const pageViews = document.querySelectorAll('.page-view');
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    
+                    // Update active nav link
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                    
+                    // Show corresponding page
+                    const targetPage = link.dataset.page;
+                    // Remove active from all pages
+                    pageViews.forEach(page => {
+                        page.classList.remove('active');
+                        page.style.display = 'none'; // Force hide
+                    });
+                    const targetPageElement = document.getElementById(`${targetPage}-page`);
+                    
+                    if (targetPageElement) {
+                        targetPageElement.classList.add('active');
+                        targetPageElement.style.display = 'block'; // Force show
+                        
+                        // Load page data after ensuring the page is visible
+                        setTimeout(() => {
+                            loadPageData(targetPage);
+                        }, 50);
+                    } else {
+                        console.error(`Page element not found: ${targetPage}-page`);
+                    }
+                });
+            });
+        }
+
+        // Load data based on current page
+        function loadPageData(page) {
+            switch(page) {
+                case 'overview':
+                    loadOverviewData();
+                    break;
+                case 'graph':
+                    initializeNetworkGraph();
+                    break;
+                case 'tree':
+                    renderTreeView();
+                    // Update Lucide icons after rendering tree
+                    setTimeout(() => lucide.createIcons(), 100);
+                    break;
+                case 'analytics':
+                    loadAnalyticsData();
+                    break;
+                case 'recent':
+                    loadRecentData();
+                    break;
+                case 'search':
+                    updateSearchTagCloud();
+                    // Perform default search to show all entries
+                    setTimeout(() => {
+                        const searchInput = document.getElementById('searchInput');
+                        if (!searchInput.value.trim()) {
+                            searchInput.value = '*';
+                            performSearch('*');
+                        }
+                    }, 100);
+                    break;
+            }
+        }
+
+        // WebSocket connection
         function connectWebSocket() {
             const wsUrl = `ws://${window.location.host}/ws`;
             ws = new WebSocket(wsUrl);
             
             ws.onopen = () => {
-                console.log('WebSocket connected');
-                document.getElementById('status').className = 'status-connected';
-                document.getElementById('status').textContent = 'Connected';
+                updateConnectionStatus(true);
                 ws.send(JSON.stringify({ type: 'getAll' }));
+                loadOverviewData();
             };
             
             ws.onmessage = (event) => {
                 const message = JSON.parse(event.data);
-                handleMessage(message);
+                handleWebSocketMessage(message);
             };
             
             ws.onclose = () => {
                 console.log('WebSocket disconnected');
-                document.getElementById('status').className = 'status-disconnected';
-                document.getElementById('status').textContent = 'Disconnected - Reconnecting...';
+                updateConnectionStatus(false);
                 setTimeout(connectWebSocket, 3000);
             };
             
             ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
+                updateConnectionStatus(false);
             };
         }
-        
-        function handleMessage(message) {
+
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
+            
+            if (connected) {
+                indicator.classList.add('connected');
+                text.textContent = 'Connected';
+            } else {
+                indicator.classList.remove('connected');
+                text.textContent = 'Disconnected';
+            }
+        }
+
+        function handleWebSocketMessage(message) {
             switch (message.type) {
                 case 'allEntries':
-                    // Clear and rebuild
-                    data.nodes.clear();
-                    data.edges.clear();
                     knowledgeMap.clear();
-                    
                     message.entries.forEach(entry => {
-                        addOrUpdateNode(entry.path, entry.data);
+                        knowledgeMap.set(entry.path, entry.data);
                     });
-                    updateCounts();
+                    updateKPIs();
+                    if (network) {
+                        updateNetworkGraph();
+                    }
+                    // Update tree view if it's active
+                    const currentPage = document.querySelector('.nav-link.active')?.dataset?.page;
+                    if (currentPage === 'tree') {
+                        renderTreeView();
+                    }
                     break;
                     
                 case 'entryAdded':
                 case 'entryUpdated':
-                    addOrUpdateNode(message.path, message.data);
-                    updateCounts();
+                    knowledgeMap.set(message.path, message.data);
+                    updateKPIs();
+                    if (network) {
+                        updateNetworkGraph();
+                    }
+                    // Update tree view if it's active
+                    if (document.querySelector('.nav-link.active')?.dataset?.page === 'tree') {
+                        renderTreeView();
+                    }
                     break;
                     
                 case 'entryDeleted':
-                    removeNode(message.path);
-                    updateCounts();
+                    knowledgeMap.delete(message.path);
+                    updateKPIs();
+                    if (network) {
+                        updateNetworkGraph();
+                    }
+                    // Update tree view if it's active
+                    if (document.querySelector('.nav-link.active')?.dataset?.page === 'tree') {
+                        renderTreeView();
+                    }
+                    break;
+                    
+                case 'statsResults':
+                    currentStats = message;
+                    updateOverviewCharts();
+                    break;
+                    
+                case 'searchResults':
+                    displaySearchResults(message.results);
+                    break;
+                    
+                case 'recentResults':
+                    // Check if this is today's data (1 day request)
+                    if (message.days === 1) {
+                        // Calculate today's changes based on recent activity
+                        const todayEntries = message.entries || [];
+                        const todayAdded = todayEntries.filter(e => e.change_type === 'added').length;
+                        const todayModified = todayEntries.filter(e => e.change_type === 'modified').length;
+                        
+                        // Calculate today's new connected entries
+                        // Count how many entries added today have connections
+                        let todayConnectedEntries = 0;
+                        
+                        // Count entries that were added today with connections
+                        todayEntries.forEach(entry => {
+                            if (entry.change_type === 'added' && entry.relationships && entry.relationships > 0) {
+                                todayConnectedEntries++;
+                            }
+                        });
+                        
+                        // Update entries change indicator
+                        const entriesChangeEl = document.getElementById('entriesChange');
+                        entriesChangeEl.textContent = todayAdded > 0 ? `+${todayAdded} today` : '0 today';
+                        entriesChangeEl.className = 'metric-change positive';
+                        
+                        // Update connections change indicator  
+                        const connectionsChangeEl = document.getElementById('connectionsChange');
+                        connectionsChangeEl.textContent = todayConnectedEntries > 0 ? `+${todayConnectedEntries} today` : '0 today';
+                        connectionsChangeEl.className = 'metric-change positive';
+                    } else {
+                        // Regular recent activity display
+                        displayRecentActivity(message);
+                    }
                     break;
             }
         }
-        
-        function addOrUpdateNode(path, entryData) {
-            knowledgeMap.set(path, entryData);
+
+        // Load overview data
+        function loadOverviewData() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'stats' }));
+                ws.send(JSON.stringify({ type: 'recent', days: 7, limit: 10 }));
+                // Also fetch today's changes
+                ws.send(JSON.stringify({ type: 'recent', days: 1, limit: 100 }));
+            }
+            loadAnalyticsKPIs();
+            updateTagCloud();
+        }
+
+        async function loadAnalyticsKPIs() {
+            try {
+                // Fetch analytics for 30 days and 1 day to calculate today's changes
+                const [response30d, response1d] = await Promise.all([
+                    fetch('/api/analytics?days=30'),
+                    fetch('/api/analytics?days=1')
+                ]);
+                
+                const analytics30d = await response30d.json();
+                const analytics1d = await response1d.json();
+                currentAnalytics = analytics30d;
+                
+                if (!analytics30d.error) {
+                    // Update activity KPI (only MCP tool activity)
+                    const totalActivity30d = (analytics30d.searches?.total_searches || 0) + 
+                                           (analytics30d.tools?.total_tool_calls || 0);
+                    const totalSearches30d = analytics30d.searches?.total_searches || 0;
+                    
+                    // Calculate today's changes
+                    const todaySearches = analytics1d.searches?.total_searches || 0;
+                    const todayActivity = (analytics1d.searches?.total_searches || 0) + 
+                                         (analytics1d.tools?.total_tool_calls || 0);
+                    
+                    // Update main values
+                    document.getElementById('totalSearches').textContent = totalSearches30d;
+                    document.getElementById('totalActivity').textContent = totalActivity30d;
+                    
+                    // Update change indicators
+                    const searchesChange = document.getElementById('searchesChange');
+                    const activityChange = document.getElementById('activityChange');
+                    
+                    searchesChange.textContent = todaySearches > 0 ? `+${todaySearches} today` : '0 today';
+                    searchesChange.className = 'metric-change positive';
+                    
+                    activityChange.textContent = todayActivity > 0 ? `+${todayActivity} today` : '0 today';
+                    activityChange.className = 'metric-change positive';
+                    
+                    // Update activity chart with real data (delay to ensure DOM is ready)
+                    setTimeout(() => {
+                        createActivityChart();
+                        createActivityRingChart();
+                    }, 100);
+                }
+            } catch (error) {
+                console.error('Failed to load analytics KPIs:', error);
+            }
+        }
+
+        function updateKPIs() {
+            const totalEntries = knowledgeMap.size;
             
-            const nodeId = path;
-            const color = priorityColors[entryData.priority] || '#888888';
-            // Remove priority prefix and .json extension, keep only the descriptive part
-            const fileName = path.split('/').pop().replace('.json', '');
-            const label = fileName.replace(/^(CRITICAL|REQUIRED|COMMON|EDGE-CASE)-/, '');
+            // Count connected entries (entries that have at least one connection)
+            let connectedEntries = 0;
+            knowledgeMap.forEach(entry => {
+                if (entry.related_to && entry.related_to.length > 0) {
+                    connectedEntries++;
+                }
+            });
             
-            // Add or update node
-            if (data.nodes.get(nodeId)) {
-                data.nodes.update({
-                    id: nodeId,
-                    label: label,
-                    color: {
-                        background: color,
-                        border: color,
-                        highlight: {
-                            background: color,
-                            border: '#ffffff'
-                        }
-                    },
-                    title: `${entryData.priority}: ${entryData.problem}`
-                });
-            } else {
-                data.nodes.add({
-                    id: nodeId,
-                    label: label,
-                    color: {
-                        background: color,
-                        border: color,
-                        highlight: {
-                            background: color,
-                            border: '#ffffff'
-                        }
-                    },
-                    title: `${entryData.priority}: ${entryData.problem}`,
-                    size: entryData.priority === 'CRITICAL' ? 20 : 15
-                });
+            // Update values
+            document.getElementById('totalEntries').textContent = totalEntries;
+            document.getElementById('totalConnections').textContent = connectedEntries;
+            
+            // Update tag cloud
+            updateTagCloud();
+        }
+
+        function updateTagCloud() {
+            const container = document.getElementById('tagCloudPanel');
+            
+            // Calculate tag frequencies
+            const tagCounts = new Map();
+            
+            knowledgeMap.forEach(entry => {
+                if (entry.tags && Array.isArray(entry.tags)) {
+                    entry.tags.forEach(tag => {
+                        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+                    });
+                }
+            });
+            
+            // Check if we have any tags
+            if (tagCounts.size === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="width: 100%; padding: 40px 20px;">
+                        <div class="empty-state-icon">
+                            <i data-lucide="tags" style="width: 32px; height: 32px;"></i>
+                        </div>
+                        <div class="empty-state-title" style="font-size: 16px;">No Tags Found</div>
+                        <div class="empty-state-description" style="font-size: 12px;">Tags will appear here when entries have tags</div>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
             }
             
-            // Add edges for relationships
-            if (entryData.related_to) {
-                entryData.related_to.forEach(link => {
-                    const edgeId = `${nodeId}->${link.path}`;
-                    const reverseEdgeId = `${link.path}->${nodeId}`;
-                    
-                    // Skip if reverse edge exists (for bidirectional)
-                    if (data.edges.get(reverseEdgeId) && 
-                        (link.relationship === 'related' || link.relationship === 'conflicts_with')) {
-                        return;
+            // Sort tags by frequency and get top 20
+            const sortedTags = Array.from(tagCounts.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 20);
+            
+            // Calculate size classes based on frequency for realistic cloud effect
+            const maxCount = Math.max(...sortedTags.map(t => t[1]));
+            const minCount = Math.min(...sortedTags.map(t => t[1]));
+            const range = maxCount - minCount || 1;
+            
+            // Shuffle tags for more natural cloud distribution
+            const shuffledTags = [...sortedTags].sort(() => Math.random() - 0.5);
+            
+            // Generate tag cloud HTML with varied sizes
+            const tagCloudHtml = shuffledTags.map(([tag, count]) => {
+                // Calculate size class (1-5) based on frequency
+                const normalizedCount = (count - minCount) / range;
+                let sizeClass;
+                if (normalizedCount >= 0.8) sizeClass = 5;
+                else if (normalizedCount >= 0.6) sizeClass = 4;
+                else if (normalizedCount >= 0.4) sizeClass = 3;
+                else if (normalizedCount >= 0.2) sizeClass = 2;
+                else sizeClass = 1;
+                
+                return `<span class="tag-cloud-item tag-size-${sizeClass}" onclick="searchByTag('${escapeHtml(tag)}')">${escapeHtml(tag)}<span class="tag-count">${count}</span></span>`;
+            }).join('');
+            
+            container.innerHTML = tagCloudHtml;
+        }
+
+        function searchByTag(tag) {
+            // Switch to search page
+            document.querySelector('.nav-link[data-page="search"]').click();
+            
+            // Set search input and perform search
+            setTimeout(() => {
+                const searchInput = document.getElementById('searchInput');
+                searchInput.value = `tag:${tag}`;
+                performSearch(`tag:${tag}`);
+                searchInput.focus();
+            }, 100);
+        }
+
+        function updateOverviewCharts() {
+            if (!currentStats) return;
+            
+            createPriorityChart();
+            createActivityChart();
+            createActivityRingChart();
+            displayRecentActivityTable();
+        }
+
+        function createPriorityChart() {
+            const ctx = document.getElementById('priorityChart').getContext('2d');
+            
+            if (charts.priority) {
+                charts.priority.destroy();
+            }
+            
+            const priorities = currentStats.priorities;
+            if (!priorities) return;
+            
+            charts.priority = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(priorities.counts),
+                    datasets: [{
+                        data: Object.values(priorities.counts),
+                        backgroundColor: [
+                            priorityColors['CRITICAL'],
+                            priorityColors['REQUIRED'],
+                            priorityColors['COMMON'],
+                            priorityColors['EDGE-CASE']
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#a0a9c0',
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
                     }
-                    
-                    if (!data.edges.get(edgeId)) {
-                        data.edges.add({
-                            id: edgeId,
-                            from: nodeId,
-                            to: link.path,
-                            label: link.relationship,
-                            color: {
-                                color: link.relationship === 'conflicts_with' ? '#ff4444' : '#848484'
-                            },
-                            dashes: link.relationship === 'superseded_by' || link.relationship === 'implemented_by'
+                }
+            });
+        }
+
+        function createActivityChart() {
+            const ctx = document.getElementById('activityChart');
+            if (!ctx) {
+                console.warn('Activity chart canvas not found');
+                return;
+            }
+            
+            const context = ctx.getContext('2d');
+            
+            if (charts.activity) {
+                charts.activity.destroy();
+                charts.activity = null;
+            }
+            
+            // Prepare data for the last 30 days
+            const days = [];
+            const data = [];
+            const dailyData = {};
+            
+            // Initialize all days with 0
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                const displayDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                days.push(displayDate);
+                dailyData[dateStr] = 0;
+            }
+            
+            // Fill in real data from analytics (excluding web_view)
+            if (currentAnalytics) {
+                // Use the patterns.by_day data which now excludes web_view activity
+                if (currentAnalytics.patterns && currentAnalytics.patterns.by_day) {
+                    const byDay = currentAnalytics.patterns.by_day;
+                    Object.keys(byDay).forEach(day => {
+                        if (dailyData.hasOwnProperty(day)) {
+                            dailyData[day] = byDay[day];
+                        }
+                    });
+                } else {
+                    // Fallback: Use access patterns if available
+                    if (currentAnalytics.access?.access_patterns?.by_day) {
+                        const byDay = currentAnalytics.access.access_patterns.by_day;
+                        Object.keys(byDay).forEach(day => {
+                            if (dailyData.hasOwnProperty(day)) {
+                                dailyData[day] = byDay[day];
+                            }
                         });
                     }
-                });
-            }
-        }
-        
-        function removeNode(path) {
-            knowledgeMap.delete(path);
-            data.nodes.remove(path);
-            // Remove all edges connected to this node
-            const connectedEdges = data.edges.get({
-                filter: (edge) => edge.from === path || edge.to === path
-            });
-            data.edges.remove(connectedEdges.map(e => e.id));
-        }
-        
-        function updateCounts() {
-            document.getElementById('nodeCount').textContent = data.nodes.length;
-            document.getElementById('edgeCount').textContent = data.edges.length;
-        }
-        
-        // Handle node selection
-        network.on('selectNode', (params) => {
-            if (params.nodes.length > 0) {
-                const nodeId = params.nodes[0];
-                const entry = knowledgeMap.get(nodeId);
-                if (entry) {
-                    showDetails(nodeId, entry);
                 }
             }
-        });
-        
-        network.on('deselectNode', () => {
-            document.getElementById('details').style.display = 'none';
-        });
-        
-        function showDetails(path, entry) {
-            document.getElementById('details').style.display = 'block';
-            document.getElementById('detailsTitle').textContent = path;
+            
+            // Convert daily data to array in chronological order
+            Object.keys(dailyData).sort().forEach(day => {
+                data.push(dailyData[day]);
+            });
+            
+            charts.activity = new Chart(context, {
+                type: 'line',
+                data: {
+                    labels: days,
+                    datasets: [{
+                        label: 'Activity',
+                        data: data,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: '#374151'
+                            },
+                            ticks: {
+                                color: '#6b7280'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: '#374151'
+                            },
+                            ticks: {
+                                color: '#6b7280'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createActivityRingChart() {
+            const ctx = document.getElementById('activityRingChart');
+            if (!ctx) {
+                console.warn('Activity ring chart canvas not found');
+                return;
+            }
+            
+            const context = ctx.getContext('2d');
+            
+            if (charts.activityRing) {
+                charts.activityRing.destroy();
+                charts.activityRing = null;
+            }
+            
+            // Get CRUD activity data from analytics
+            let crudData = {
+                create: 0,
+                read: 0,
+                update: 0,
+                delete: 0
+            };
+            
+            if (currentAnalytics && currentAnalytics.patterns && currentAnalytics.patterns.crud_operations) {
+                crudData = currentAnalytics.patterns.crud_operations;
+            }
+            
+            // Create the doughnut chart (ring chart)
+            charts.activityRing = new Chart(context, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Create', 'Read/Search', 'Update', 'Delete'],
+                    datasets: [{
+                        data: [crudData.create, crudData.read, crudData.update, crudData.delete],
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.8)',   // Green for create
+                            'rgba(59, 130, 246, 0.8)',   // Blue for read
+                            'rgba(245, 158, 11, 0.8)',   // Yellow for update
+                            'rgba(239, 68, 68, 0.8)'     // Red for delete
+                        ],
+                        borderColor: [
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(239, 68, 68, 1)'
+                        ],
+                        borderWidth: 2,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',  // Creates the ring effect
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#9ca3af',
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayRecentActivityTable() {
+            // This will be populated by WebSocket message
+        }
+
+        // Network graph
+        function initializeNetworkGraph() {
+            const container = document.getElementById('networkContainer');
+            
+            const data = {
+                nodes: new vis.DataSet(),
+                edges: new vis.DataSet()
+            };
+            
+            const options = {
+                nodes: {
+                    shape: 'dot',
+                    font: {
+                        color: '#ffffff',
+                        size: 12,
+                        multi: 'html'
+                    },
+                    widthConstraint: {
+                        maximum: 120
+                    },
+                    borderWidth: 2,
+                    margin: {
+                        top: 5,
+                        right: 10,
+                        bottom: 5,
+                        left: 10
+                    }
+                },
+                edges: {
+                    arrows: {
+                        to: { enabled: true, scaleFactor: 1.0, type: 'arrow' }
+                    },
+                    length: 180,
+                    smooth: {
+                        type: 'continuous'
+                    },
+                    color: {
+                        color: '#848484',
+                        highlight: '#ffffff'
+                    },
+                    font: {
+                        color: '#000000',  // Black text for readability on arrows
+                        size: 11,
+                        align: 'middle',
+                        background: 'rgba(255, 255, 255, 0.8)',  // Semi-transparent white background
+                        strokeWidth: 3,
+                        strokeColor: 'rgba(255, 255, 255, 0.8)'  // White stroke for contrast
+                    }
+                },
+                physics: {
+                    enabled: true,  // Start with physics enabled
+                    barnesHut: {
+                        gravitationalConstant: -8000,
+                        centralGravity: 0.3,
+                        springLength: 300,
+                        springConstant: 0.04,
+                        damping: 0.09,
+                        avoidOverlap: 1
+                    },
+                    forceAtlas2Based: {
+                        gravitationalConstant: -150,
+                        centralGravity: 0.01,
+                        springLength: 300,
+                        springConstant: 0.08,
+                        avoidOverlap: 1
+                    },
+                    solver: 'barnesHut',
+                    stabilization: {
+                        enabled: false,  // Disable initial stabilization for continuous physics
+                        iterations: 1000,
+                        updateInterval: 25
+                    },
+                    adaptiveTimestep: true,
+                    minVelocity: 0.75,
+                    maxVelocity: 50,
+                    timestep: 0.5
+                },
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 200
+                }
+            };
+            
+            network = new vis.Network(container, data, options);
+            
+            // Show stabilization progress
+            network.on('stabilizationProgress', function(params) {
+                const progress = params.iterations / params.total * 100;
+                console.log(`Stabilization progress: ${progress.toFixed(1)}%`);
+            });
+            
+            network.on('stabilizationIterationsDone', function() {
+                console.log('Stabilization complete!');
+                // Keep physics state as is - user controls it
+                updatePhysicsButton(physicsEnabled);
+            });
+            
+            network.on('selectNode', (params) => {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    const entry = knowledgeMap.get(nodeId);
+                    if (entry) {
+                        showEntryModal(nodeId, entry);
+                    }
+                }
+            });
+            
+            // Removed auto physics toggle on drag - now controlled manually
+            
+            updateNetworkGraph();
+        }
+
+        function updateNetworkGraph() {
+            if (!network) return;
+            
+            const nodes = network.body.data.nodes;
+            const edges = network.body.data.edges;
+            
+            nodes.clear();
+            edges.clear();
+            
+            // Add nodes
+            knowledgeMap.forEach((entry, path) => {
+                const color = priorityColors[entry.priority] || '#6b7280';
+                const title = entry.title || path.split('/').pop().replace('.json', '');
+                
+                // Calculate node size based on connections
+                const connections = entry.related_to?.length || 0;
+                const baseSize = 30;
+                const nodeSize = Math.min(baseSize + (connections * 3), 60);
+                
+                nodes.add({
+                    id: path,
+                    label: title.length > 20 ? title.substring(0, 17) + '...' : title,
+                    size: nodeSize,
+                    mass: 1 + (connections * 0.2),  // More mass for nodes with more connections
+                    color: {
+                        background: color,
+                        border: color,
+                        highlight: {
+                            background: color,
+                            border: '#ffffff'
+                        }
+                    },
+                    title: `${entry.title}\n${entry.priority}: ${entry.problem}`
+                });
+            });
+            
+            // Add edges
+            knowledgeMap.forEach((entry, path) => {
+                if (entry.related_to) {
+                    entry.related_to.forEach(link => {
+                        const edgeId = `${path}->${link.path}`;
+                        const reverseEdgeId = `${link.path}->${path}`;
+                        
+                        // Skip if reverse edge exists (for bidirectional)
+                        if (edges.get(reverseEdgeId) && 
+                            (link.relationship === 'related' || link.relationship === 'conflicts_with')) {
+                            return;
+                        }
+                        
+                        if (!edges.get(edgeId)) {
+                            edges.add({
+                                id: edgeId,
+                                from: path,
+                                to: link.path,
+                                label: link.relationship,
+                                color: {
+                                    color: link.relationship === 'conflicts_with' ? '#ff4444' : '#848484'
+                                },
+                                dashes: link.relationship === 'superseded_by' || link.relationship === 'implemented_by',
+                                title: link.description || link.relationship
+                            });
+                        }
+                    });
+                }
+            });
+            
+            // Auto-fit the network view after updates
+            setTimeout(() => {
+                if (network) {
+                    network.fit({
+                        animation: {
+                            duration: 1000,
+                            easingFunction: 'easeInOutQuad'
+                        }
+                    });
+                }
+            }, 500);
+        }
+
+        // Analytics page
+        async function loadAnalyticsData() {
+            try {
+                const response = await fetch('/api/analytics?days=30');
+                const analytics = await response.json();
+                
+                if (analytics.error) {
+                    document.getElementById('searchAnalytics').innerHTML = `<div class="empty-state"><div class="empty-state-title">No Data Available</div><div class="empty-state-description">${analytics.error}</div></div>`;
+                    document.getElementById('toolAnalytics').innerHTML = `<div class="empty-state"><div class="empty-state-title">No Data Available</div><div class="empty-state-description">${analytics.error}</div></div>`;
+                    return;
+                }
+                
+                displaySearchAnalytics(analytics);
+                displayToolAnalytics(analytics);
+                createHourlyActivityChart(analytics);
+                
+            } catch (error) {
+                document.getElementById('searchAnalytics').innerHTML = `<div class="empty-state"><div class="empty-state-title">Error Loading Analytics</div><div class="empty-state-description">${error.message}</div></div>`;
+                document.getElementById('toolAnalytics').innerHTML = `<div class="empty-state"><div class="empty-state-title">Error Loading Analytics</div><div class="empty-state-description">${error.message}</div></div>`;
+            }
+        }
+
+        function displaySearchAnalytics(analytics) {
+            const container = document.getElementById('searchAnalytics');
+            
+            if (!container) {
+                return;
+            }
+            
+            if (!analytics.searches || analytics.searches.total_searches === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i data-lucide="search" style="width: 48px; height: 48px;"></i>
+                        </div>
+                        <div class="empty-state-title">No Search Data</div>
+                        <div class="empty-state-description">Start searching to see analytics</div>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+            
+            const { total_searches, unique_queries, popular_queries, wildcard_usage } = analytics.searches;
             
             let html = `
-                <p><strong>Priority:</strong> <span class="priority-${entry.priority}">${entry.priority}</span></p>
-                <p><strong>Problem:</strong> ${entry.problem}</p>
-                <p><strong>Solution:</strong> ${entry.solution}</p>
+                <div class="grid grid-cols-2" style="margin-bottom: 24px;">
+                    <div class="kpi-card">
+                        <div class="kpi-value">${total_searches}</div>
+                        <div class="kpi-label">Total Searches</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value">${unique_queries}</div>
+                        <div class="kpi-label">Unique Queries</div>
+                    </div>
+                </div>
             `;
             
-            if (entry.code) {
-                html += `<p><strong>Code:</strong></p><pre>${escapeHtml(entry.code)}</pre>`;
+            if (popular_queries && popular_queries.length > 0) {
+                html += `
+                    <h4 style="margin-bottom: 16px; color: var(--primary-text);">Popular Queries</h4>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Query</th>
+                                <th>Count</th>
+                                <th>Last Used</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${popular_queries.slice(0, 5).map(item => `
+                                <tr>
+                                    <td><code>"${item.query}"</code></td>
+                                    <td>${item.count}</td>
+                                    <td>${new Date(item.last_search).toLocaleDateString()}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+            
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function displayToolAnalytics(analytics) {
+            const container = document.getElementById('toolAnalytics');
+            
+            if (!analytics.tools || analytics.tools.total_tool_calls === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i data-lucide="wrench" style="width: 48px; height: 48px;"></i>
+                        </div>
+                        <div class="empty-state-title">No Tool Data</div>
+                        <div class="empty-state-description">Use MCP tools to see analytics</div>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+            
+            const { total_tool_calls, tool_usage } = analytics.tools;
+            
+            let html = `
+                <div class="kpi-card" style="margin-bottom: 24px;">
+                    <div class="kpi-value">${total_tool_calls}</div>
+                    <div class="kpi-label">Total Tool Calls</div>
+                </div>
+            `;
+            
+            if (tool_usage && Object.keys(tool_usage).length > 0) {
+                const sortedTools = Object.entries(tool_usage)
+                    .sort(([,a], [,b]) => b - a)
+                    .slice(0, 8);
+                
+                html += `
+                    <h4 style="margin-bottom: 16px; color: var(--primary-text);">Most Used Tools</h4>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Tool</th>
+                                <th>Usage Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sortedTools.map(([tool, count]) => `
+                                <tr>
+                                    <td><code>${tool}</code></td>
+                                    <td>${count}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+            
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function createHourlyActivityChart(analytics) {
+            if (!analytics.access || !analytics.access.access_patterns || !analytics.access.access_patterns.by_hour) return;
+            
+            const ctx = document.getElementById('hourlyActivityChart').getContext('2d');
+            
+            if (charts.hourly) {
+                charts.hourly.destroy();
+            }
+            
+            // Use actual hourly data from analytics
+            const hourlyData = analytics.access.access_patterns.by_hour;
+            const hours = Array.from({length: 24}, (_, i) => `${i}:00`);
+            const data = hours.map((_, i) => hourlyData[i.toString()] || 0);
+            
+            charts.hourly = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'Activity',
+                        data: data,
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: '#374151'
+                            },
+                            ticks: {
+                                color: '#6b7280'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: '#374151'
+                            },
+                            ticks: {
+                                color: '#6b7280'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Recent activity
+        function loadRecentData() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                try {
+                    ws.send(JSON.stringify({ 
+                        type: 'recent', 
+                        days: 7, 
+                        limit: 20 
+                    }));
+                } catch (error) {
+                    document.getElementById('recentChanges').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-title">Error Loading Recent Changes</div>
+                            <div class="empty-state-description">${error.message}</div>
+                        </div>
+                    `;
+                }
+            } else {
+                document.getElementById('recentChanges').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-title">Connection Error</div>
+                        <div class="empty-state-description">WebSocket is not connected. Please refresh the page.</div>
+                    </div>
+                `;
+            }
+        }
+        
+        function displayRecentActivity(data) {
+            const container = document.getElementById('recentChanges');
+            
+            if (!data.entries || data.entries.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i data-lucide="clock" style="width: 48px; height: 48px;"></i>
+                        </div>
+                        <div class="empty-state-title">No Recent Activity</div>
+                        <div class="empty-state-description">No changes in the last ${data.period.days} days</div>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+            
+            let html = `
+                <div class="recent-summary" style="margin-bottom: 24px;">
+                    <div class="grid grid-cols-3">
+                        <div class="kpi-card">
+                            <div class="kpi-value">${data.summary.total_changes}</div>
+                            <div class="kpi-label">Total Changes</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value">${data.summary.added}</div>
+                            <div class="kpi-label">Added</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value">${data.summary.modified}</div>
+                            <div class="kpi-label">Modified</div>
+                        </div>
+                    </div>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Entry</th>
+                            <th>Type</th>
+                            <th>Date</th>
+                            <th>Priority</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            data.entries.forEach(entry => {
+                const changeIcon = entry.change_type === 'added' ? 'plus-circle' : 'edit';
+                const changeColor = entry.change_type === 'added' ? '#10b981' : '#3b82f6';
+                const date = new Date(entry.change_type === 'added' ? entry.created_at : entry.modified_at);
+                
+                html += `
+                    <tr onclick="showEntryDetails('${entry.path}')" style="cursor: pointer;">
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i data-lucide="${changeIcon}" style="width: 16px; height: 16px; color: ${changeColor};"></i>
+                                <div>
+                                    <div style="font-weight: 500;">${entry.path.split('/').pop().replace('.json', '')}</div>
+                                    <div style="font-size: 12px; color: var(--secondary-text);">${entry.problem}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span style="color: ${changeColor}; font-size: 12px; text-transform: capitalize;">
+                                ${entry.change_type}
+                            </span>
+                        </td>
+                        <td style="font-size: 13px;">
+                            ${date.toLocaleDateString()} ${date.toLocaleTimeString()}
+                        </td>
+                        <td>
+                            <span class="priority-badge priority-${entry.priority.toLowerCase().replace(/-/g, '_')}">${entry.priority}</span>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+
+
+        function displaySearchResults(results) {
+            const container = document.getElementById('searchResults');
+            const subtitle = document.getElementById('searchResultsSubtitle');
+            
+            if (!results || results.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i data-lucide="search-x" style="width: 48px; height: 48px;"></i>
+                        </div>
+                        <div class="empty-state-title">No Results Found</div>
+                        <div class="empty-state-description">Try different keywords or check your spelling</div>
+                    </div>
+                `;
+                lucide.createIcons();
+                subtitle.textContent = 'No results found';
+                return;
+            }
+            
+            subtitle.textContent = `Found ${results.length} result${results.length > 1 ? 's' : ''}`;
+            
+            let html = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Entry</th>
+                            <th>Priority</th>
+                            <th>Tags</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            results.forEach(result => {
+                const priorityClass = `priority-${result.entry.priority.toLowerCase().replace('-', '-')}`;
+                
+                html += `
+                    <tr onclick="showEntryModal('${result.path}', ${JSON.stringify(result.entry).replace(/"/g, '&quot;')})">
+                        <td>
+                            <div style="font-weight: 500;">${result.entry.title || result.path.split('/').pop().replace('.json', '')}</div>
+                            <div style="font-size: 12px; color: var(--muted-text); margin-top: 4px;">
+                                ${result.entry.problem.substring(0, 80)}${result.entry.problem.length > 80 ? '...' : ''}
+                            </div>
+                        </td>
+                        <td><span class="${priorityClass}">${result.entry.priority}</span></td>
+                        <td>
+                            ${result.entry.tags ? result.entry.tags.slice(0, 3).map(tag => 
+                                `<span class="tag">${tag}</span>`
+                            ).join('') : ''}
+                            ${result.entry.tags && result.entry.tags.length > 3 ? `<span class="tag">+${result.entry.tags.length - 3}</span>` : ''}
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        // Modal functionality
+        function showEntryModal(path, entry) {
+            const modal = document.getElementById('entryModal');
+            const title = document.getElementById('modalTitle');
+            const content = document.getElementById('modalContent');
+            
+            title.textContent = entry.title || path.split('/').pop().replace('.json', '');
+            
+            // Configure marked options
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                mangle: false
+            });
+            
+            let html = `
+                <div style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                        <span class="priority-${entry.priority.toLowerCase().replace('-', '-')}" style="font-weight: 600;">${entry.priority}</span>
+                        <code style="background: var(--accent-bg); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${path.replace('.json', '')}</code>
+                    </div>
+                    
+                    ${entry.tags && entry.tags.length > 0 ? `
+                        <div style="margin-bottom: 16px;">
+                            ${entry.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            if (entry.problem) {
+                html += `<h4 style="margin-bottom: 12px; color: var(--accent-red);">Problem</h4>${marked.parse(entry.problem)}`;
+            }
+            
+            if (entry.context) {
+                html += `<h4 style="margin-bottom: 12px; color: var(--accent-yellow);">Context</h4>${marked.parse(entry.context)}`;
+            }
+            
+            if (entry.solution) {
+                html += `<h4 style="margin-bottom: 12px; color: var(--accent-green);">Solution</h4>${marked.parse(entry.solution)}`;
+            }
+            
+            if (entry.examples && entry.examples.length > 0) {
+                html += '<h4 style="margin-bottom: 12px; color: var(--accent-purple);">Examples</h4>';
+                entry.examples.forEach(example => {
+                    if (example.title) {
+                        html += `<h5 style="margin: 16px 0 8px; color: var(--secondary-text);">${example.title}</h5>`;
+                    }
+                    if (example.description) {
+                        html += `<p style="margin-bottom: 8px; font-style: italic; color: var(--muted-text);">${example.description}</p>`;
+                    }
+                    if (example.code) {
+                        html += `<pre style="background: var(--accent-bg); padding: 16px; border-radius: 8px; margin: 8px 0; overflow-x: auto;"><code class="language-${example.language || ''}">${escapeHtml(example.code)}</code></pre>`;
+                    }
+                });
+            }
+            
+            if (entry.code && !entry.examples) {
+                html += `<h4 style="margin-bottom: 12px; color: var(--accent-purple);">Code</h4><pre style="background: var(--accent-bg); padding: 16px; border-radius: 8px; overflow-x: auto;"><code>${escapeHtml(entry.code)}</code></pre>`;
             }
             
             if (entry.related_to && entry.related_to.length > 0) {
-                html += '<p><strong>Related to:</strong></p><ul>';
+                html += '<h4 style="margin-bottom: 12px; color: var(--accent-blue);">Related Entries</h4><ul style="margin-left: 20px;">';
                 entry.related_to.forEach(link => {
-                    html += `<li>${link.relationship}: ${link.path}`;
+                    html += `<li style="margin-bottom: 8px;"><strong>${link.relationship}:</strong> ${link.path}`;
                     if (link.description) {
                         html += ` - ${link.description}`;
                     }
@@ -637,348 +2684,771 @@
                 html += '</ul>';
             }
             
-            document.getElementById('detailsContent').innerHTML = html;
+            content.innerHTML = html;
+            modal.classList.add('active');
+            
+            // Apply syntax highlighting
+            Prism.highlightAllUnder(content);
         }
-        
+
+        function closeModal() {
+            document.getElementById('entryModal').classList.remove('active');
+        }
+
+        function showEntryDetails(path) {
+            const entry = knowledgeMap.get(path);
+            if (entry) {
+                showEntryModal(path, entry);
+            }
+        }
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-        
-        // Search functionality
-        let searchTimeout;
-        let allNodes = [];
-        let currentSearchResults = [];
-        
-        const searchInput = document.getElementById('searchInput');
-        const searchResults = document.getElementById('searchResults');
-        const searchInfo = document.getElementById('searchInfo');
-        const priorityCheckboxes = document.querySelectorAll('input[name="priority"]');
-        
-        // Keyboard shortcut for search
-        document.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-                e.preventDefault();
-                searchInput.focus();
+
+        // Close modal when clicking outside
+        document.getElementById('entryModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
             }
         });
+
+        // Remove old visualizer switching - no longer needed
         
-        function performSearch() {
-            const query = searchInput.value.trim();
-            const selectedPriorities = Array.from(priorityCheckboxes)
-                .filter(cb => cb.checked)
+        // Simple tree view implementation
+        function renderTreeView() {
+            const container = document.getElementById('fancytree');
+            if (!container) return;
+            
+            // Build tree structure
+            const tree = buildTreeStructure();
+            
+            // Generate HTML
+            let html = '<div class="simple-tree">';
+            html += renderTreeNode(tree, 'knowledge-tree');
+            html += '</div>';
+            
+            container.innerHTML = html;
+            
+            // Initialize Lucide icons
+            lucide.createIcons();
+            
+            // Add click handlers using event delegation
+            container.addEventListener('click', (e) => {
+                const target = e.target;
+                
+                // Handle file clicks
+                const fileEl = target.closest('.tree-file');
+                if (fileEl) {
+                    e.stopPropagation();
+                    const path = fileEl.dataset.path;
+                    if (path) showEntryDetails(path);
+                    return;
+                }
+                
+                // Handle toggle clicks
+                if (target.classList.contains('tree-toggle')) {
+                    e.stopPropagation();
+                    const folder = target.closest('.tree-folder');
+                    const itemContainer = folder.parentElement;
+                    const children = itemContainer.querySelector('.tree-children');
+                    if (children) {
+                        children.style.display = children.style.display === 'none' ? 'block' : 'none';
+                        target.textContent = children.style.display === 'none' ? '▶' : '▼';
+                    }
+                    return;
+                }
+                
+                // Handle folder clicks (expand/collapse)
+                const folderEl = target.closest('.tree-folder');
+                if (folderEl) {
+                    e.stopPropagation();
+                    const toggle = folderEl.querySelector('.tree-toggle');
+                    if (toggle) toggle.click();
+                }
+            });
+        }
+        
+        // Render tree node recursively
+        function renderTreeNode(node, name, level = 0) {
+            let html = '';
+            
+            const hasChildren = Object.keys(node.children).length > 0;
+            const hasEntries = node.entries.length > 0;
+            
+            if (level === 0) {
+                // Root node
+                html += `<div class="tree-folder" data-level="${level}">`;
+                html += `<span class="tree-toggle">▼</span>`;
+                html += `<i data-lucide="folder-open" class="tree-icon"></i>`;
+                html += `<span class="tree-label">${name}/</span>`;
+                html += `<span class="tree-count">${countTreeItems(node)}</span>`;
+                html += `</div>`;
+                html += `<div class="tree-children">`;
+            }
+            
+            // Render folders
+            Object.entries(node.children).forEach(([childName, childNode]) => {
+                const childCount = countTreeItems(childNode);
+                if (childCount > 0) {
+                    html += `<div class="tree-item">`;
+                    html += `<div class="tree-folder" data-level="${level + 1}">`;
+                    html += '&nbsp;'.repeat((level + 1) * 4);
+                    html += `<span class="tree-toggle">▼</span>`;
+                    html += `<i data-lucide="folder-open" class="tree-icon"></i>`;
+                    html += `<span class="tree-label">${childName}/</span>`;
+                    html += `<span class="tree-count">${childCount}</span>`;
+                    html += `</div>`;
+                    html += `<div class="tree-children">`;
+                    html += renderTreeNode(childNode, childName, level + 1);
+                    html += `</div>`;
+                    html += `</div>`;
+                }
+            });
+            
+            // Render files
+            node.entries.forEach(entry => {
+                const priorityClass = `priority-${entry.entry.priority.toLowerCase().replace(/-/g, '_')}`;
+                html += `<div class="tree-file" data-path="${entry.path}" data-level="${level + 1}">`;
+                html += '&nbsp;'.repeat((level + 1) * 4);
+                html += `<i data-lucide="file-text" class="tree-icon"></i>`;
+                html += `<span class="tree-label">${entry.name.replace('.json', '')}</span>`;
+                html += `<span class="tree-priority ${priorityClass}">${entry.entry.priority}</span>`;
+                html += `</div>`;
+            });
+            
+            if (level === 0) {
+                html += `</div>`;
+            }
+            
+            return html;
+        }
+        
+        // Build tree structure from flat knowledge map
+        function buildTreeStructure() {
+            const tree = { name: 'Knowledge Tree', children: {}, entries: [] };
+            
+            knowledgeMap.forEach((entry, path) => {
+                const parts = path.split('/');
+                let current = tree;
+                
+                // Navigate/create path
+                for (let i = 0; i < parts.length - 1; i++) {
+                    const part = parts[i];
+                    if (!current.children[part]) {
+                        current.children[part] = { name: part, children: {}, entries: [] };
+                    }
+                    current = current.children[part];
+                }
+                
+                // Add entry
+                current.entries.push({ path, entry, name: parts[parts.length - 1] });
+            });
+            
+            return tree;
+        }
+        
+        // Count total items in a tree node
+        function countTreeItems(node) {
+            let count = node.entries.length;
+            Object.values(node.children).forEach(child => {
+                count += countTreeItems(child);
+            });
+            return count;
+        }
+        
+        // Graph search and filter functions
+        let originalNodeOpacity = new Map();
+        let originalEdgeOpacity = new Map();
+        let highlightedNodes = new Set();
+        
+        function populateGraphFilters() {
+            // Collect all unique tags and categories
+            const tags = new Set();
+            const categories = new Set();
+            
+            knowledgeMap.forEach((entry, path) => {
+                // Add tags
+                if (entry.tags) {
+                    entry.tags.forEach(tag => tags.add(tag));
+                }
+                
+                // Extract category from path
+                const parts = path.split('/');
+                if (parts.length > 1) {
+                    categories.add(parts[0]);
+                }
+            });
+            
+            // Populate tag filter
+            const tagFilter = document.getElementById('tagFilter');
+            if (tagFilter) {
+                Array.from(tags).sort().forEach(tag => {
+                    const option = document.createElement('option');
+                    option.value = tag;
+                    option.textContent = tag;
+                    tagFilter.appendChild(option);
+                });
+            }
+            
+            // Populate category filter
+            const categoryFilter = document.getElementById('categoryFilter');
+            if (categoryFilter) {
+                Array.from(categories).sort().forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    option.textContent = category;
+                    categoryFilter.appendChild(option);
+                });
+            }
+        }
+        
+        function searchGraphNodes(query) {
+            if (!network) return;
+            
+            const nodes = network.body.data.nodes;
+            const edges = network.body.data.edges;
+            
+            // Reset previous highlights
+            resetGraphHighlights();
+            
+            if (!query) return;
+            
+            const lowerQuery = query.toLowerCase();
+            const matchingNodes = [];
+            
+            // Find matching nodes
+            nodes.forEach(node => {
+                const entry = knowledgeMap.get(node.id);
+                if (entry) {
+                    const matches = 
+                        node.label.toLowerCase().includes(lowerQuery) ||
+                        (entry.problem && entry.problem.toLowerCase().includes(lowerQuery)) ||
+                        (entry.solution && entry.solution.toLowerCase().includes(lowerQuery)) ||
+                        (entry.tags && entry.tags.some(tag => tag.toLowerCase().includes(lowerQuery)));
+                    
+                    if (matches) {
+                        matchingNodes.push(node.id);
+                        highlightNode(node.id);
+                    }
+                }
+            });
+            
+            // Apply highlighting effect
+            applyGraphHighlights();
+            
+            // Focus on matching nodes if any found
+            if (matchingNodes.length > 0) {
+                network.fit({
+                    nodes: matchingNodes,
+                    animation: true
+                });
+            }
+        }
+        
+        function filterGraphByTag(tag) {
+            if (!network) return;
+            
+            resetGraphHighlights();
+            
+            if (!tag) return;
+            
+            const matchingNodes = [];
+            
+            knowledgeMap.forEach((entry, path) => {
+                if (entry.tags && entry.tags.includes(tag)) {
+                    matchingNodes.push(path);
+                    highlightNode(path);
+                }
+            });
+            
+            // Apply highlighting effect
+            applyGraphHighlights();
+            
+            if (matchingNodes.length > 0) {
+                network.fit({
+                    nodes: matchingNodes,
+                    animation: true
+                });
+            }
+        }
+        
+        function filterGraphByCategory(category) {
+            if (!network) return;
+            
+            resetGraphHighlights();
+            
+            if (!category) return;
+            
+            const matchingNodes = [];
+            
+            knowledgeMap.forEach((entry, path) => {
+                if (path.startsWith(category + '/')) {
+                    matchingNodes.push(path);
+                    highlightNode(path);
+                }
+            });
+            
+            // Apply highlighting effect
+            applyGraphHighlights();
+            
+            if (matchingNodes.length > 0) {
+                network.fit({
+                    nodes: matchingNodes,
+                    animation: true
+                });
+            }
+        }
+        
+        function applyGraphHighlights() {
+            if (!network || highlightedNodes.size === 0) return;
+            
+            const nodes = network.body.data.nodes;
+            const edges = network.body.data.edges;
+            const updates = [];
+            const edgeUpdates = [];
+            
+            // Store original opacity and dim non-highlighted nodes
+            nodes.forEach(node => {
+                if (!originalNodeOpacity.has(node.id)) {
+                    originalNodeOpacity.set(node.id, {
+                        opacity: node.opacity !== undefined ? node.opacity : 1,
+                        font: node.font || {}
+                    });
+                }
+                
+                if (highlightedNodes.has(node.id)) {
+                    // Keep highlighted nodes at full opacity
+                    updates.push({
+                        id: node.id,
+                        opacity: 1,
+                        font: { color: node.font?.color || '#ffffff' }
+                    });
+                } else {
+                    // Dim non-highlighted nodes
+                    updates.push({
+                        id: node.id,
+                        opacity: 0.2,
+                        font: { color: 'rgba(255,255,255,0.3)' }
+                    });
+                }
+            });
+            
+            // Dim edges that don't connect highlighted nodes
+            edges.forEach(edge => {
+                if (!originalEdgeOpacity.has(edge.id)) {
+                    originalEdgeOpacity.set(edge.id, {
+                        opacity: edge.opacity !== undefined ? edge.opacity : 1,
+                        color: edge.color || {}
+                    });
+                }
+                
+                const fromHighlighted = highlightedNodes.has(edge.from);
+                const toHighlighted = highlightedNodes.has(edge.to);
+                
+                if (fromHighlighted && toHighlighted) {
+                    // Keep edges between highlighted nodes visible
+                    edgeUpdates.push({
+                        id: edge.id,
+                        opacity: 1,
+                        color: { opacity: 1 }
+                    });
+                } else if (fromHighlighted || toHighlighted) {
+                    // Semi-dim edges connected to only one highlighted node
+                    edgeUpdates.push({
+                        id: edge.id,
+                        opacity: 0.3,
+                        color: { opacity: 0.3 }
+                    });
+                } else {
+                    // Fully dim edges not connected to highlighted nodes
+                    edgeUpdates.push({
+                        id: edge.id,
+                        opacity: 0.1,
+                        color: { opacity: 0.1 }
+                    });
+                }
+            });
+            
+            // Apply updates
+            network.body.data.nodes.update(updates);
+            network.body.data.edges.update(edgeUpdates);
+        }
+        
+        function highlightNode(nodeId) {
+            highlightedNodes.add(nodeId);
+        }
+        
+        function resetGraphHighlights() {
+            if (!network) return;
+            
+            const nodeUpdates = [];
+            const edgeUpdates = [];
+            
+            // Restore original opacity for all nodes
+            originalNodeOpacity.forEach((original, nodeId) => {
+                nodeUpdates.push({
+                    id: nodeId,
+                    opacity: original.opacity,
+                    font: original.font
+                });
+            });
+            
+            // Restore original opacity for all edges
+            originalEdgeOpacity.forEach((original, edgeId) => {
+                edgeUpdates.push({
+                    id: edgeId,
+                    opacity: original.opacity,
+                    color: original.color
+                });
+            });
+            
+            // Apply updates
+            if (nodeUpdates.length > 0) {
+                network.body.data.nodes.update(nodeUpdates);
+            }
+            if (edgeUpdates.length > 0) {
+                network.body.data.edges.update(edgeUpdates);
+            }
+            
+            // Clear stored data
+            highlightedNodes.clear();
+            originalNodeOpacity.clear();
+            originalEdgeOpacity.clear();
+        }
+        
+        function clearGraphFilters() {
+            // Clear search input
+            const searchInput = document.getElementById('graphSearch');
+            if (searchInput) searchInput.value = '';
+            
+            // Reset filters
+            const tagFilter = document.getElementById('tagFilter');
+            if (tagFilter) tagFilter.value = '';
+            
+            const categoryFilter = document.getElementById('categoryFilter');
+            if (categoryFilter) categoryFilter.value = '';
+            
+            // Reset highlights
+            resetGraphHighlights();
+            
+            // Fit to show all nodes
+            if (network) {
+                network.fit();
+            }
+        }
+        
+        // Physics state tracking
+        let physicsEnabled = true;  // Start with physics enabled
+        
+        // Toggle continuous physics simulation
+        function togglePhysics() {
+            if (!network) return;
+            
+            physicsEnabled = !physicsEnabled;
+            
+            if (physicsEnabled) {
+                // Enable continuous physics
+                network.setOptions({ 
+                    physics: { 
+                        enabled: true,
+                        barnesHut: {
+                            gravitationalConstant: -5000,  // Slightly less for continuous mode
+                            centralGravity: 0.2,
+                            springLength: 250,
+                            springConstant: 0.04,
+                            damping: 0.15,  // More damping for stability
+                            avoidOverlap: 1
+                        },
+                        minVelocity: 0.5,  // Lower threshold for continuous
+                        maxVelocity: 30,   // Lower max for smoother motion
+                        timestep: 0.35
+                    } 
+                });
+            } else {
+                // Disable physics
+                network.setOptions({ physics: { enabled: false } });
+            }
+            
+            updatePhysicsButton(physicsEnabled);
+        }
+        
+        // Update physics button state
+        function updatePhysicsButton(enabled) {
+            const button = document.getElementById('physicsToggle');
+            const textSpan = document.getElementById('physicsToggleText');
+            
+            if (enabled) {
+                button.style.background = 'var(--accent-red)';
+                textSpan.textContent = 'Disable Physics';
+            } else {
+                button.style.background = 'var(--accent-purple)';
+                textSpan.textContent = 'Enable Physics';
+            }
+            
+            physicsEnabled = enabled;
+        }
+        
+        // Re-layout graph with physics
+        function relayoutGraph() {
+            if (!network) return;
+            
+            // Re-enable physics temporarily
+            network.setOptions({ 
+                physics: { 
+                    enabled: true,
+                    stabilization: {
+                        enabled: true,
+                        iterations: 2000,
+                        updateInterval: 50,
+                        onlyDynamicEdges: false,
+                        fit: true
+                    }
+                } 
+            });
+            
+            // Stabilize the network
+            network.stabilize(2000);
+            
+            // Show a temporary message
+            const button = event.currentTarget;
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<i data-lucide="loader" style="width: 16px; height: 16px; animation: spin 1s linear infinite;"></i> Stabilizing...';
+            button.disabled = true;
+            
+            // Re-enable button after stabilization
+            network.once('stabilizationIterationsDone', function() {
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+                // Re-create lucide icons
+                setTimeout(() => lucide.createIcons(), 10);
+            });
+        }
+        
+        // Fullscreen toggle
+        let isFullscreen = false;
+        function toggleFullscreen(event) {
+            // Determine which page we're on
+            const currentPage = document.querySelector('.nav-link.active')?.dataset?.page;
+            const container = currentPage === 'graph' 
+                ? document.getElementById('networkContainer')
+                : document.getElementById('fancytree');
+            
+            if (!container) return;
+            
+            const button = event ? event.currentTarget : document.querySelector('[onclick*="toggleFullscreen"]');
+            const icon = button.querySelector('i[data-lucide]');
+            
+            if (isFullscreen) {
+                // Exit fullscreen
+                container.classList.remove('network-fullscreen');
+                const controls = document.querySelector('.network-fullscreen-controls');
+                if (controls) controls.remove();
+                
+                // Update button text and icon
+                button.innerHTML = '<i data-lucide="maximize" style="width: 16px; height: 16px;"></i> Fullscreen';
+                lucide.createIcons();
+                isFullscreen = false;
+            } else {
+                // Enter fullscreen
+                container.classList.add('network-fullscreen');
+                
+                // Add fullscreen controls
+                const controls = document.createElement('div');
+                controls.className = 'network-fullscreen-controls';
+                const title = currentPage === 'graph' ? 'Knowledge Connections' : 'Knowledge Explorer';
+                
+                if (currentPage === 'graph') {
+                    // Add search and filter controls for graph
+                    controls.innerHTML = `
+                        <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                            <div style="color: var(--primary-text); font-size: 14px; font-weight: 500;">${title}</div>
+                            
+                            <input type="text" id="graphSearch" placeholder="Search nodes..." 
+                                style="padding: 6px 12px; background: var(--card-bg); border: 1px solid var(--border-color); 
+                                       border-radius: 6px; color: var(--primary-text); width: 200px;"
+                                onkeyup="searchGraphNodes(this.value)">
+                            
+                            <select id="tagFilter" onchange="filterGraphByTag(this.value)"
+                                style="padding: 6px 12px; background: var(--card-bg); border: 1px solid var(--border-color); 
+                                       border-radius: 6px; color: var(--primary-text);">
+                                <option value="">All Tags</option>
+                            </select>
+                            
+                            <select id="categoryFilter" onchange="filterGraphByCategory(this.value)"
+                                style="padding: 6px 12px; background: var(--card-bg); border: 1px solid var(--border-color); 
+                                       border-radius: 6px; color: var(--primary-text);">
+                                <option value="">All Categories</option>
+                            </select>
+                            
+                            <button onclick="clearGraphFilters()" style="background: var(--accent-bg); color: var(--primary-text); 
+                                    border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 4px; cursor: pointer;">
+                                <i data-lucide="x-circle" style="width: 14px; height: 14px; vertical-align: middle;"></i> Clear
+                            </button>
+                            
+                            <button onclick="toggleFullscreen(event)" style="background: var(--accent-red); color: white; 
+                                    border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
+                                <i data-lucide="minimize" style="width: 14px; height: 14px; vertical-align: middle;"></i> Exit
+                            </button>
+                        </div>
+                    `;
+                    
+                    // Populate filters
+                    setTimeout(() => populateGraphFilters(), 100);
+                } else {
+                    controls.innerHTML = `
+                        <div style="color: var(--primary-text); font-size: 14px; font-weight: 500;">${title} - Fullscreen Mode</div>
+                        <button onclick="toggleFullscreen(event)" style="background: var(--accent-red); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
+                            <i data-lucide="minimize" style="width: 14px; height: 14px; vertical-align: middle;"></i> Exit Fullscreen
+                        </button>
+                    `;
+                }
+                
+                container.appendChild(controls);
+                lucide.createIcons();
+                
+                // Update button text and icon
+                button.innerHTML = '<i data-lucide="minimize" style="width: 16px; height: 16px;"></i> Exit';
+                lucide.createIcons();
+                isFullscreen = true;
+            }
+            
+            // Redraw network after size change
+            if (network) {
+                setTimeout(() => {
+                    network.redraw();
+                    network.fit();
+                }, 200);
+            }
+        }
+
+        // Search functionality with priority filters
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const priorityCheckboxes = document.querySelectorAll('input[name="priority"]');
+            let searchTimeout;
+            
+            // Search input handler
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    performAdvancedSearch();
+                }, 300);
+            });
+            
+            // Priority checkbox handlers
+            priorityCheckboxes.forEach(cb => {
+                cb.addEventListener('change', () => {
+                    if (searchInput.value.trim()) {
+                        performAdvancedSearch();
+                    }
+                });
+            });
+            
+            // Update tag cloud when on search page
+            updateSearchTagCloud();
+        }
+
+        function performAdvancedSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            const selectedPriorities = Array.from(document.querySelectorAll('input[name="priority"]:checked'))
                 .map(cb => cb.value);
             
-            if (!query && selectedPriorities.length === 4) {
-                // Show all if no query and all priorities selected
-                searchResults.style.display = 'none';
-                searchInfo.textContent = '';
-                data.nodes.forEach(node => {
-                    data.nodes.update({ id: node.id, opacity: 1 });
-                });
-                data.edges.forEach(edge => {
-                    data.edges.update({ id: edge.id, hidden: false });
-                });
-                return;
-            }
+            performSearch(query, selectedPriorities);
+        }
+
+        function performSearch(query, priorities = []) {
+            const resultsContainer = document.getElementById('searchResults');
+            const subtitle = document.getElementById('searchResultsSubtitle');
             
-            // Only search if there's a query (* wildcard counts as a query)
             if (!query) {
-                searchResults.style.display = 'none';
-                searchInfo.textContent = '';
+                resultsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i data-lucide="search" style="width: 48px; height: 48px;"></i>
+                        </div>
+                        <div class="empty-state-title">Search Knowledge Base</div>
+                        <div class="empty-state-description">Use the search box above to find specific knowledge entries</div>
+                    </div>
+                `;
+                lucide.createIcons();
+                subtitle.textContent = 'Enter a search query to find knowledge entries';
                 return;
             }
             
-            // Send search request
+            resultsContainer.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Searching...
+                </div>
+            `;
+            
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
                     type: 'search',
                     query: query,
-                    priority: selectedPriorities,
-                    limit: 100
+                    priority: priorities.length > 0 ? priorities : ['CRITICAL', 'REQUIRED', 'COMMON', 'EDGE-CASE'],
+                    limit: 50
                 }));
             }
         }
-        
-        searchInput.addEventListener('input', () => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(performSearch, 300);
-        });
-        
-        priorityCheckboxes.forEach(cb => {
-            cb.addEventListener('change', () => {
-                // Only trigger search if there's a query
-                if (searchInput.value.trim()) {
-                    performSearch();
-                }
-            });
-        });
-        
-        function displaySearchResults(results) {
-            currentSearchResults = results;
-            searchResults.innerHTML = '';
+
+        function updateSearchTagCloud() {
+            const tagCounts = new Map();
             
-            if (results.length === 0) {
-                searchInfo.textContent = 'No results found';
-                searchResults.style.display = 'none';
-                return;
-            }
-            
-            searchInfo.textContent = `Found ${results.length} result${results.length > 1 ? 's' : ''}`;
-            searchResults.style.display = 'block';
-            
-            // Update graph visualization
-            const matchingPaths = new Set(results.map(r => r.path));
-            
-            // Fade non-matching nodes
-            data.nodes.forEach(node => {
-                if (matchingPaths.has(node.id)) {
-                    data.nodes.update({ id: node.id, opacity: 1 });
-                } else {
-                    data.nodes.update({ id: node.id, opacity: 0.2 });
-                }
-            });
-            
-            // Hide edges not connected to matching nodes
-            data.edges.forEach(edge => {
-                if (matchingPaths.has(edge.from) || matchingPaths.has(edge.to)) {
-                    data.edges.update({ id: edge.id, hidden: false, opacity: 0.5 });
-                } else {
-                    data.edges.update({ id: edge.id, hidden: true });
-                }
-            });
-            
-            // Display search results list
-            results.slice(0, 20).forEach(result => {
-                const resultDiv = document.createElement('div');
-                resultDiv.className = 'search-result';
-                
-                const pathDiv = document.createElement('div');
-                pathDiv.className = 'search-result-path priority-' + result.entry.priority;
-                pathDiv.textContent = result.path;
-                
-                const problemDiv = document.createElement('div');
-                problemDiv.className = 'search-result-problem';
-                problemDiv.textContent = result.entry.problem.substring(0, 100) + 
-                    (result.entry.problem.length > 100 ? '...' : '');
-                
-                resultDiv.appendChild(pathDiv);
-                resultDiv.appendChild(problemDiv);
-                
-                resultDiv.addEventListener('click', () => {
-                    // Focus on the node
-                    network.selectNodes([result.path]);
-                    network.focus(result.path, {
-                        scale: 1.5,
-                        animation: {
-                            duration: 500,
-                            easingFunction: 'easeInOutQuad'
-                        }
+            // Count all tags
+            knowledgeMap.forEach(entry => {
+                if (entry.tags && Array.isArray(entry.tags)) {
+                    entry.tags.forEach(tag => {
+                        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
                     });
-                    showDetails(result.path, result.entry);
-                });
-                
-                searchResults.appendChild(resultDiv);
-            });
-            
-            if (results.length > 20) {
-                const moreDiv = document.createElement('div');
-                moreDiv.className = 'search-info';
-                moreDiv.textContent = `... and ${results.length - 20} more`;
-                searchResults.appendChild(moreDiv);
-            }
-        }
-        
-        // Modify handleMessage to handle search results
-        const originalHandleMessage = handleMessage;
-        handleMessage = function(message) {
-            if (message.type === 'searchResults') {
-                displaySearchResults(message.results);
-            } else {
-                originalHandleMessage(message);
-            }
-        };
-        
-        // Stats and recent changes functionality
-        let currentStats = null;
-        let currentRecent = null;
-        
-        // Tab switching
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.addEventListener('click', () => {
-                const targetTab = button.dataset.tab;
-                
-                // Update button states
-                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-                button.classList.add('active');
-                
-                // Update tab content
-                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-                document.getElementById(`${targetTab}-tab`).classList.add('active');
-                
-                // Load data if needed
-                if (targetTab === 'overview' && !currentStats) {
-                    loadStats();
-                } else if (targetTab === 'recent' && !currentRecent) {
-                    loadRecent();
                 }
             });
+            
+            // Sort tags by count
+            const sortedTags = Array.from(tagCounts.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 20); // Top 20 tags
+            
+            // Calculate size classes
+            const maxCount = Math.max(...sortedTags.map(t => t[1]));
+            const minCount = Math.min(...sortedTags.map(t => t[1]));
+            const range = maxCount - minCount || 1;
+            
+            // Build tag cloud HTML
+            const tagCloudHtml = sortedTags.map(([tag, count]) => {
+                const sizeClass = Math.ceil(((count - minCount) / range) * 4) + 1;
+                return `<span class="tag-cloud-item tag-size-${sizeClass}" onclick="searchByTag('${escapeHtml(tag)}')">
+                    ${escapeHtml(tag)}<span class="tag-count">${count}</span>
+                </span>`;
+            }).join('');
+            
+        }
+
+        function searchByTag(tag) {
+            // Set the search input
+            document.getElementById('searchInput').value = `tag:${tag}`;
+            // Trigger search
+            performAdvancedSearch();
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Escape to close modal
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+            
+            // Ctrl/Cmd + K to focus search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+                // Switch to search page
+                document.querySelector('.nav-link[data-page="search"]').click();
+            }
         });
-        
-        function loadStats() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: 'stats'
-                }));
-            }
-        }
-        
-        function loadRecent() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: 'recent',
-                    days: 7,
-                    limit: 15
-                }));
-            }
-        }
-        
-        function displayStats(stats) {
-            currentStats = stats;
-            
-            if (stats.summary) {
-                document.getElementById('totalEntries').textContent = stats.summary.total_entries;
-                document.getElementById('withRelations').textContent = stats.summary.with_relationships;
-                document.getElementById('withCode').textContent = stats.summary.with_code_examples;
-            }
-            
-            if (stats.orphaned) {
-                document.getElementById('orphanedCount').textContent = stats.orphaned.count;
-            }
-            
-            if (stats.priorities) {
-                const priorityBar = document.getElementById('priorityBar');
-                const priorityLegend = document.getElementById('priorityLegend');
-                
-                priorityBar.innerHTML = '';
-                priorityLegend.innerHTML = '';
-                
-                const colors = {
-                    'CRITICAL': '#ff4444',
-                    'REQUIRED': '#ff9944', 
-                    'COMMON': '#44ff44',
-                    'EDGE-CASE': '#4444ff'
-                };
-                
-                let legendText = '';
-                Object.entries(stats.priorities.counts).forEach(([priority, count]) => {
-                    const percentage = stats.priorities.percentages[priority];
-                    
-                    const segment = document.createElement('div');
-                    segment.className = 'priority-segment';
-                    segment.style.backgroundColor = colors[priority];
-                    segment.style.width = `${percentage}%`;
-                    segment.title = `${priority}: ${count} (${percentage}%)`;
-                    priorityBar.appendChild(segment);
-                    
-                    legendText += `${priority}: ${count} (${percentage}%) `;
-                });
-                
-                priorityLegend.textContent = legendText;
-            }
-            
-            if (stats.categories) {
-                const categoriesInfo = document.getElementById('categoriesInfo');
-                categoriesInfo.innerHTML = '';
-                
-                Object.entries(stats.categories).forEach(([category, info]) => {
-                    const categoryDiv = document.createElement('div');
-                    categoryDiv.style.fontSize = '10px';
-                    categoryDiv.style.marginBottom = '2px';
-                    categoryDiv.innerHTML = `<strong>${category}</strong>: ${info.count} entries`;
-                    categoriesInfo.appendChild(categoryDiv);
-                });
-            }
-        }
-        
-        function displayRecent(recent) {
-            currentRecent = recent;
-            
-            document.getElementById('recentDays').textContent = recent.period.days || 7;
-            
-            const recentList = document.getElementById('recentList');
-            recentList.innerHTML = '';
-            
-            if (recent.summary) {
-                const summaryDiv = document.createElement('div');
-                summaryDiv.style.fontSize = '10px';
-                summaryDiv.style.color = '#888';
-                summaryDiv.style.marginBottom = '10px';
-                summaryDiv.textContent = `${recent.summary.total_changes} changes (${recent.summary.added} added, ${recent.summary.modified} modified)`;
-                recentList.appendChild(summaryDiv);
-            }
-            
-            recent.entries.forEach(entry => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = `recent-item ${entry.change_type}`;
-                
-                const pathDiv = document.createElement('div');
-                pathDiv.className = 'recent-path priority-' + entry.priority;
-                pathDiv.textContent = entry.path;
-                
-                const problemDiv = document.createElement('div');
-                problemDiv.className = 'recent-problem';
-                problemDiv.textContent = entry.problem.substring(0, 80) + (entry.problem.length > 80 ? '...' : '');
-                
-                const metaDiv = document.createElement('div');
-                metaDiv.className = 'recent-meta';
-                const date = new Date(entry.modified_at);
-                metaDiv.textContent = `${entry.change_type} ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-                
-                itemDiv.appendChild(pathDiv);
-                itemDiv.appendChild(problemDiv);
-                itemDiv.appendChild(metaDiv);
-                
-                // Click to focus
-                itemDiv.addEventListener('click', () => {
-                    if (data.nodes.get(entry.path)) {
-                        network.selectNodes([entry.path]);
-                        network.focus(entry.path, {
-                            scale: 1.5,
-                            animation: { duration: 500 }
-                        });
-                    }
-                });
-                
-                recentList.appendChild(itemDiv);
-            });
-        }
-        
-        // Update handleMessage to handle stats and recent data
-        const originalHandleMessage2 = handleMessage;
-        handleMessage = function(message) {
-            if (message.type === 'statsResults') {
-                displayStats(message);
-            } else if (message.type === 'recentResults') {
-                displayRecent(message);
-            } else {
-                originalHandleMessage2(message);
-            }
-        };
-        
-        // Auto-load stats when connected
-        const originalConnect = connectWebSocket;
-        connectWebSocket = function() {
-            originalConnect();
-            // Load initial stats after a short delay
-            setTimeout(() => {
-                loadStats();
-            }, 1000);
-        };
-        
-        // Start WebSocket connection
-        connectWebSocket();
     </script>
 </body>
 </html>

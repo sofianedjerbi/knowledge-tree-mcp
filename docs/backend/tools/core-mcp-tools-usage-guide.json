@@ -1,0 +1,35 @@
+{
+  "title": "Core MCP Tools Usage Guide",
+  "priority": "CRITICAL",
+  "problem": "Effective use of the Knowledge Tree MCP system requires understanding the core tools: help, index_knowledge, and search_knowledge. These tools provide navigation, discovery, and assistance capabilities.",
+  "solution": "## 1. help Tool - Contextual Assistance\n\n### Purpose\nProvides context-aware help and guidance for using the Knowledge Tree MCP system.\n\n### Usage Patterns\n```bash",
+  "tags": [
+    "tools",
+    "mcp",
+    "help",
+    "search",
+    "index",
+    "usage"
+  ],
+  "context": "These three tools form the foundation of knowledge exploration in the system. The help tool provides contextual guidance, index_knowledge gives system overview, and search_knowledge enables targeted discovery. Mastering these tools is essential for productive knowledge management.",
+  "examples": [
+    {
+      "title": "Comprehensive Tool Usage Example",
+      "language": "bash"
+    }
+  ],
+  "created_at": "2025-08-03T16:30:00.867Z",
+  "updated_at": "2025-08-04T11:14:02.789Z",
+  "related_to": [
+    {
+      "path": "backend/mcp/mcp-server-request-flow-lifecycle.json",
+      "relationship": "implements",
+      "description": "Practical usage guide for the core MCP tools described in the server architecture"
+    },
+    {
+      "path": "backend/tools/knowledge-management-tools-guide.json",
+      "relationship": "related",
+      "description": "Both provide comprehensive guidance for using MCP tools effectively"
+    }
+  ]
+}

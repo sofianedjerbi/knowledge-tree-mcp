@@ -1,0 +1,29 @@
+{
+  "title": "Knowledge Management Tools Guide",
+  "priority": "CRITICAL",
+  "problem": "Effective knowledge management in Knowledge Tree MCP requires understanding the CRUD operations: add_knowledge for creating entries, update_knowledge for modifications, and delete_knowledge for safe removal with relationship cleanup.",
+  "solution": "## 1. add_knowledge Tool - Creating Entries\n\n### Purpose\nCreates new knowledge entries with automatic path generation and validation.\n\n### Key Features\n- **Auto-path generation**: Generates paths from titles using category detection\n- **Markdown processing**: Parses front matter and content structure\n- **Validation**: Ensures required fields and proper formatting\n- **Relationship support**: Can include initial relationships\n\n### Usage Pattern\n```json\n{\n  \"tool\": \"add_knowledge\",\n  \"content\": \"---\\ntitle: Your Entry Title\\npriority: REQUIRED\\ntags: [relevant, tags]\\n---\\n\\n# Problem\\nDescribe the issue or need.\\n\\n# Solution\\nProvide the complete solution.\"\n}\n```\n\n## 2. update_knowledge Tool - Modifying Entries\n\n### Purpose\nModifies existing knowledge entries with field-level updates and path changes.\n\n### Key Features\n- **Selective updates**: Update only specified fields\n- **Path regeneration**: Can auto-generate new paths from updated titles\n- **Relationship management**: Add, modify, or remove relationships\n- **Validation**: Ensures consistency after updates\n\n### Usage Pattern\n```json\n{\n  \"tool\": \"update_knowledge\",\n  \"path\": \"existing/entry/path.json\",\n  \"updates\": {\n    \"title\": \"Updated Title\",\n    \"priority\": \"CRITICAL\",\n    \"solution\": \"Enhanced solution content\"\n  }\n}\n```\n\n## 3. delete_knowledge Tool - Safe Removal\n\n### Purpose\nSafely removes knowledge entries while cleaning up all references and relationships.\n\n### Key Features\n- **Reference cleanup**: Removes relationships from other entries\n- **Validation**: Prevents deletion if entry doesn't exist\n- **Logging**: Records deletion for audit trail\n- **Safety checks**: Confirms operation before permanent removal\n\n### Usage Pattern\n```json\n{\n  \"tool\": \"delete_knowledge\",\n  \"path\": \"entry/to/remove.json\",\n  \"cleanup_links\": true\n}\n```\n\n## Best Practices\n\n### Content Creation\n1. **Use descriptive titles**: Enable accurate path generation\n2. **Choose appropriate priority**: Follow priority guidelines\n3. **Include relevant tags**: Improve searchability\n4. **Write complete solutions**: No placeholders or TODOs\n\n### Content Updates\n1. **Update incrementally**: Make focused, single-purpose changes\n2. **Regenerate paths**: When titles change significantly\n3. **Maintain relationships**: Update related entries when necessary\n4. **Validate changes**: Ensure consistency after updates\n\n### Content Removal\n1. **Check relationships**: Understand impact before deletion\n2. **Enable cleanup**: Always use cleanup_links: true\n3. **Document reasons**: Consider adding replacement entries\n4. **Batch operations**: Remove related entries together when appropriate",
+  "tags": [
+    "tools",
+    "add-knowledge",
+    "update-knowledge",
+    "delete-knowledge",
+    "management"
+  ],
+  "context": "These three tools form the core CRUD operations for knowledge management. The add_knowledge tool creates new entries with auto-path generation, update_knowledge modifies existing entries, and delete_knowledge safely removes entries while cleaning up relationships.",
+  "examples": [
+    {
+      "title": "Complete Knowledge Lifecycle",
+      "language": "bash"
+    }
+  ],
+  "created_at": "2025-08-03T16:31:03.030Z",
+  "updated_at": "2025-08-04T11:14:07.157Z",
+  "related_to": [
+    {
+      "path": "backend/tools/core-mcp-tools-usage-guide.json",
+      "relationship": "related",
+      "description": "Both provide comprehensive guidance for using MCP tools effectively"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "title": "Priority System Usage Guide",
+  "priority": "REQUIRED",
+  "problem": "Knowledge Tree MCP uses a four-tier priority system, but contributors need clear guidelines on when to use CRITICAL, REQUIRED, COMMON, and EDGE-CASE classifications to ensure consistent and useful prioritization.",
+  "solution": "## Priority Levels Explained\n\n### CRITICAL - System Breaking Issues\n**When to use:**\n- Core functionality that breaks the entire system if wrong\n- Security vulnerabilities or authentication issues\n- Data loss or corruption scenarios\n- Production deployment blockers\n- Compliance or legal requirements\n\n**Examples:**\n- \"Never store passwords in plain text\"\n- \"Always validate user input to prevent SQL injection\"\n- \"Production database connection must use SSL\"\n- \"API rate limits must be enforced\"\n\n### REQUIRED - Common Essential Knowledge\n**When to use:**\n- Frequently needed information for daily work\n- Standard patterns everyone should follow\n- Important features used regularly\n- Best practices for common tasks\n- Setup and configuration essentials\n\n**Examples:**\n- \"How to authenticate API requests\"\n- \"Standard error handling patterns\"\n- \"Database connection pooling setup\"\n- \"Logging configuration for production\"\n\n### COMMON - Regular Patterns and Tips\n**When to use:**\n- Useful patterns that improve code quality\n- Performance optimizations\n- Developer experience improvements\n- Alternative approaches to problems\n- Helpful shortcuts and utilities\n\n**Examples:**\n- \"Caching strategies for better performance\"\n- \"Using custom hooks in React\"\n- \"Debugging tips for async operations\"\n- \"Code organization patterns\"\n\n### EDGE-CASE - Rare but Important Scenarios\n**When to use:**\n- Workarounds for specific bugs\n- Solutions for unusual requirements\n- Platform-specific issues\n- Legacy system compatibility\n- Rare error conditions\n\n**Examples:**\n- \"Handling Safari-specific date parsing bugs\"\n- \"Workaround for Node.js memory leak in v14.2\"\n- \"Supporting IE11 for government clients\"\n- \"Dealing with 32-bit integer overflow\"\n\n## Decision Flow Chart\n\n```\nIs this about security, data loss, or system stability?\n├─ Yes → CRITICAL\n└─ No → Is this used frequently (daily/weekly)?\n    ├─ Yes → REQUIRED\n    └─ No → Is this a useful pattern or optimization?\n        ├─ Yes → COMMON\n        └─ No → EDGE-CASE\n```\n\n## Priority Assignment Best Practices\n\n### 1. Err on the Side of Lower Priority\nIf unsure between two levels, choose the lower priority. It's better to have a COMMON entry that gets promoted than a CRITICAL entry that causes alert fatigue.\n\n### 2. Consider the Audience\n- Who needs this information?\n- How often will they need it?\n- What happens if they don't know it?\n\n### 3. Review and Adjust\nPriorities can change over time:\n- EDGE-CASE → COMMON if a pattern becomes popular\n- COMMON → REQUIRED if adopted as standard\n- REQUIRED → CRITICAL if security implications discovered\n\n### 4. Priority Anti-Patterns\n\n**Don't use CRITICAL for:**\n- Personal preferences\n- Nice-to-have features\n- Performance improvements (unless critical)\n- Documentation updates\n\n**Don't use EDGE-CASE for:**\n- Ignoring proper solutions\n- Temporary hacks that should be fixed\n- Undocumented features\n- Experimental code\n\n## Searching by Priority\n\nLeverage priority levels in searches:\n```bash",
+  "tags": [
+    "priority",
+    "classification",
+    "best-practices",
+    "guidelines"
+  ],
+  "context": "The Knowledge Tree MCP system uses a four-tier priority system to help AI assistants and developers quickly identify the most important information. Proper priority assignment ensures critical knowledge is easily discoverable and appropriately emphasized.",
+  "examples": [
+    {
+      "title": "Priority Classification Examples",
+      "language": "markdown"
+    }
+  ],
+  "created_at": "2025-08-03T16:27:50.586Z",
+  "updated_at": "2025-08-04T11:14:32.509Z",
+  "related_to": [
+    {
+      "path": "llm/documentation/knowledge-entry-structure-best-practices.json",
+      "relationship": "related",
+      "description": "Provides detailed guidance on the priority field of knowledge entries"
+    }
+  ]
+}

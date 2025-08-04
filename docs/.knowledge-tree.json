@@ -1,0 +1,90 @@
+{
+  "name": "Knowledge Tree MCP",
+  "pathPrefix": "knowledge-tree",
+  "defaultPriority": "COMMON",
+  "categories": {
+    "architecture": {
+      "keywords": [
+        "design",
+        "structure",
+        "pattern",
+        "system"
+      ],
+      "subcategories": [
+        "mcp",
+        "web",
+        "api"
+      ]
+    },
+    "development": {
+      "keywords": [
+        "dev",
+        "build",
+        "test",
+        "debug"
+      ],
+      "subcategories": [
+        "setup",
+        "workflow",
+        "testing"
+      ]
+    },
+    "tools": {
+      "keywords": [
+        "tool",
+        "command",
+        "function"
+      ],
+      "subcategories": [
+        "core",
+        "analytics",
+        "management"
+      ]
+    },
+    "integration": {
+      "keywords": [
+        "integrate",
+        "claude",
+        "client"
+      ],
+      "subcategories": [
+        "claude",
+        "api",
+        "web"
+      ]
+    }
+  },
+  "technologies": [
+    "typescript",
+    "nodejs",
+    "mcp",
+    "fastify",
+    "websocket",
+    "json",
+    "markdown"
+  ],
+  "autoTags": {
+    "mcp": [
+      "mcp",
+      "model context protocol",
+      "server"
+    ],
+    "typescript": [
+      "ts",
+      "typescript",
+      "type"
+    ],
+    "api": [
+      "api",
+      "endpoint",
+      "request",
+      "response"
+    ],
+    "web": [
+      "web",
+      "ui",
+      "interface",
+      "browser"
+    ]
+  }
+}

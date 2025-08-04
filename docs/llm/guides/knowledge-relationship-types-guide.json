@@ -1,0 +1,28 @@
+{
+  "title": "Knowledge Relationship Types Guide",
+  "priority": "REQUIRED",
+  "problem": "Understanding and properly using relationship types between knowledge entries is essential for creating a navigable, interconnected knowledge base that provides maximum value to users.",
+  "solution": "## Relationship Types\n\n### 1. related (Bidirectional)\n**Purpose**: General connection between topics  \n**Use when**: Two entries share concepts but don't have a specific dependency  \n**Bidirectional**: A related B means B related A  \n\n**Examples**:\n- \"JWT Authentication\" ↔ \"Session Management\"\n- \"Error Handling Patterns\" ↔ \"Logging Best Practices\"\n- \"React Hooks\" ↔ \"State Management\"\n\n### 2. supersedes / superseded_by (Directional Pair)\n**Purpose**: Indicates newer/better approaches  \n**Use when**: One approach replaces another  \n**Direction matters**: A supersedes B, then B superseded_by A  \n\n**Examples**:\n- \"React Hooks\" supersedes → \"React Class Components\"\n- \"Async/Await\" supersedes → \"Promise Chains\"\n- \"CSS Grid\" supersedes → \"Float-based Layouts\"\n\n### 3. conflicts_with (Bidirectional)\n**Purpose**: Mutually exclusive approaches  \n**Use when**: Two solutions cannot be used together  \n**Bidirectional**: If A conflicts with B, then B conflicts with A  \n\n**Examples**:\n- \"Server-Side Rendering\" ↔ \"Static Site Generation\"\n- \"Monolithic Architecture\" ↔ \"Microservices\"\n- \"SQL Database\" ↔ \"NoSQL for Transactions\"\n\n### 4. implements / implemented_by (Directional Pair)\n**Purpose**: Concrete realization of abstract concepts  \n**Use when**: One entry provides specific implementation  \n**Direction matters**: A implements B, then B implemented_by A  \n\n**Examples**:\n- \"Redis Session Store\" implements → \"Session Management Pattern\"\n- \"JWT Auth in Express\" implements → \"API Authentication\"\n- \"React Error Boundary\" implements → \"Error Handling Strategy\"\n\n## Relationship Best Practices\n\n### 1. Choose the Most Specific Relationship\n```\nSpecific                              General\nimplements > supersedes > conflicts_with > related\n```\n\n### 2. Maintain Bidirectional Integrity\nThe system automatically creates reverse links for bidirectional relationships:\n- `related` ↔ `related`\n- `conflicts_with` ↔ `conflicts_with`\n\nFor directional pairs, it creates the appropriate reverse:\n- `supersedes` → `superseded_by`\n- `implements` → `implemented_by`\n\n### 3. Add Descriptive Context\nAlways include a description explaining the relationship:\n```json\n{\n  \"path\": \"auth/jwt-pattern.json\",\n  \"relationship\": \"supersedes\",\n  \"description\": \"JWT provides stateless auth compared to session-based\"\n}\n```\n\n### 4. Limit Relationship Count\n- 3-5 relationships per entry is optimal\n- Too many relationships dilute importance\n- Focus on most valuable connections\n\n### 5. Review Relationships Regularly\n- Remove outdated connections\n- Update descriptions as understanding evolves\n- Add new relationships as patterns emerge\n\n## Creating and Managing Relationships\n\n### During Entry Creation\n```markdown\n---\ntitle: Implement OAuth2 Flow\npriority: REQUIRED\ntags: [oauth, authentication, security]\n---\n[content...]\n```\n\nThen link after creation:\n```bash\nlink_knowledge(\n  from: \"auth/oauth2-flow\",\n  to: \"auth/jwt-pattern\",\n  relationship: \"related\",\n  description: \"Both are modern authentication methods\"\n)\n```\n\n### Bulk Relationship Management\nFor related entry sets:\n1. Create all entries first\n2. Plan relationship structure\n3. Create links systematically\n4. Validate with `validate_knowledge`\n\n### Relationship Patterns\n\n#### Hub Pattern\nOne central entry with many related:\n```\n┌─────────────┐\n│   Auth      │\n│  Patterns   │\n└─────┬───────┘\n      │\n┌─────┴─────┬─────────┬──────────┐\nJWT      OAuth    SAML      Basic\n```\n\n#### Chain Pattern\nSequential improvements:\n```\nCallbacks → Promises → Async/Await → Async Generators\n     superseded_by →\n```\n\n#### Implementation Tree\nAbstract to concrete:\n```\nError Handling (abstract)\n├── implemented_by → Try-Catch Patterns\n├── implemented_by → Error Boundaries\n└── implemented_by → Global Error Handler\n```",
+  "tags": [
+    "relationships",
+    "linking",
+    "knowledge-graph",
+    "navigation"
+  ],
+  "context": "The Knowledge Tree MCP system supports six types of bidirectional and unidirectional relationships between entries. These relationships create a knowledge graph that helps AI assistants and developers discover related information and understand dependencies.",
+  "examples": [
+    {
+      "title": "Creating Related Entries",
+      "language": "bash"
+    }
+  ],
+  "created_at": "2025-08-03T16:28:46.240Z",
+  "updated_at": "2025-08-04T11:14:38.087Z",
+  "related_to": [
+    {
+      "path": "llm/documentation/knowledge-entry-structure-best-practices.json",
+      "relationship": "related",
+      "description": "Both provide guidance on creating well-structured knowledge entries"
+    }
+  ]
+}

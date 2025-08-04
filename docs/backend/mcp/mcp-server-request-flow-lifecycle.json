@@ -1,0 +1,30 @@
+{
+  "title": "MCP Server Request Flow and Lifecycle",
+  "priority": "CRITICAL",
+  "problem": "Understanding how requests flow through the MCP server and the lifecycle of a tool execution is crucial for debugging, extending functionality, and ensuring proper error handling.",
+  "solution": "## Request Lifecycle Stages\n\n### 1. Connection Establishment\n```typescript\n// Server starts and listens for connections\nconst server = new StdioServerTransport();\nconst mcp = new McpServer({\n  name: \"knowledge-tree-mcp\",\n  version: \"1.0.2\"\n});\n```\n\n### 2. Tool Registration\nDuring startup, all available tools are registered:\n```typescript\n// In KnowledgeTreeServer.registerTools()\nserver.setRequestHandler(\"tools/list\", async () => ({\n  tools: Object.entries(toolHandlers).map(([name, handler]) => ({\n    name: `knowledge_${name}`,\n    description: handler.description,\n    inputSchema: handler.schema\n  }))\n}));\n```\n\n### 3. Request Reception\nWhen a client sends a request:\n```typescript\n{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"knowledge_search_knowledge\",\n    \"arguments\": {\n      \"query\": \"authentication\",\n      \"priority\": [\"CRITICAL\", \"REQUIRED\"]\n    }\n  },\n  \"id\": 1\n}\n```\n\n### 4. Request Validation\nThe server validates:\n- Tool name exists in registry\n- Arguments match the tool's JSON schema\n- Required parameters are present\n- Data types are correct\n\n### 5. Handler Execution\n```typescript\n// In MCPHandlers.handleToolCall()\nconst toolName = name.replace(\"knowledge_\", \"\");\nconst handler = toolHandlers[toolName];\n\nif (!handler) {\n  throw new Error(`Unknown tool: ${name}`);\n}\n\n// Execute with context\nconst result = await handler(args, context);\n```\n\n### 6. Context Injection\nEach handler receives a context object:\n```typescript\ninterface ServerContext {\n  docsPath: string;        // Knowledge base directory\n  configPath: string;      // Configuration file path\n  projectConfig?: ProjectConfig;  // Project-specific settings\n}\n```\n\n### 7. Error Handling\nErrors are caught and formatted:\n```typescript\ntry {\n  const result = await handler(args, context);\n  return result;\n} catch (error) {\n  return {\n    error: {\n      code: -32603,\n      message: error.message\n    }\n  };\n}\n```\n\n### 8. Response Formatting\nSuccessful responses follow MCP format:\n```typescript\n{\n  \"content\": [{\n    \"type\": \"text\",\n    \"text\": \"Formatted response content\"\n  }]\n}\n```\n\n## Tool Handler Pattern\n\nEvery tool follows this pattern:\n```typescript\nexport const myToolHandler: ToolHandler = async (\n  args: MyToolArgs,\n  context: ServerContext\n): Promise<MCPResponse> => {\n  // 1. Validate specific args\n  // 2. Perform operations\n  // 3. Format response\n  return {\n    content: [{\n      type: \"text\",\n      text: result\n    }]\n  };\n};\n```\n\n## Resource System Flow\n\nFor resource requests (knowledge entries):\n1. Client requests: `knowledge://path/to/entry.json?depth=2`\n2. Server parses URI and depth parameter\n3. Loads entry and recursively fetches linked entries\n4. Returns aggregated content",
+  "tags": [
+    "mcp",
+    "server",
+    "request-flow",
+    "lifecycle",
+    "architecture"
+  ],
+  "context": "The Knowledge Tree MCP server implements the Model Context Protocol specification, handling requests from AI assistants like Claude. Each request goes through multiple stages of validation, routing, execution, and response formatting.",
+  "examples": [
+    {
+      "title": "Complete Request Flow Example",
+      "code": "// 1. Client sends request\nclient.callTool(\"knowledge_add_knowledge\", {\n  content: \"markdown content\"\n});\n\n// 2. Server receives and routes\nhandleToolCall(request) {\n  // Extract tool name\n  const toolName = \"add_knowledge\";\n  \n  // Get handler\n  const handler = toolHandlers[toolName];\n  \n  // Execute with context\n  return handler(request.params.arguments, context);\n}\n\n// 3. Handler processes\naddKnowledgeHandler(args, context) {\n  // Parse markdown\n  const entry = parseMarkdownToEntry(args.content);\n  \n  // Generate path\n  const path = generatePathFromTitle(entry.title);\n  \n  // Write to disk\n  await writeKnowledgeEntry(fullPath, entry);\n  \n  // Return success\n  return { content: [{ type: \"text\", text: \"Created!\" }] };\n}",
+      "language": "typescript"
+    }
+  ],
+  "created_at": "2025-08-03T16:26:11.620Z",
+  "updated_at": "2025-08-04T11:13:58.422Z",
+  "related_to": [
+    {
+      "path": "backend/architecture/knowledge-tree-mcp-architecture-overview.json",
+      "relationship": "implements",
+      "description": "Detailed implementation of the MCP server layer described in the architecture overview"
+    }
+  ]
+}

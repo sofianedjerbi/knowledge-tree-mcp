@@ -50,6 +50,21 @@ jobs:
         ls -la dist/
         test -f dist/index.js || (echo "Build artifact missing" && exit 1)
         
+    - name: Run tests
+      run: npm test
+      
+    - name: Run tests with coverage
+      if: matrix.node-version == '20.x'
+      run: npm run test:coverage
+      
+    - name: Upload coverage reports
+      if: matrix.node-version == '20.x'
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-reports
+        path: coverage/
+        retention-days: 7
+        
     # Store build artifacts for later jobs
     - name: Upload build artifacts
       if: matrix.node-version == '20.x'
@@ -91,6 +106,74 @@ jobs:
           exit 1
         fi
         echo "No TypeScript errors found"
+
+  # ============================================================================
+  # UNIT TESTING PHASE
+  # ============================================================================
+  
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-22.04
+    needs: build-and-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Download coverage reports
+      uses: actions/download-artifact@v4
+      with:
+        name: coverage-reports
+        path: coverage/
+        
+    - name: Run comprehensive test suite
+      run: |
+        echo "Running full test suite with detailed output..."
+        npm run test:coverage
+        
+    - name: Display test results
+      run: |
+        echo "Test coverage summary:"
+        if [ -f coverage/coverage-summary.json ]; then
+          cat coverage/coverage-summary.json
+        fi
+        
+    - name: Check test coverage thresholds
+      run: |
+        # Verify minimum coverage thresholds
+        echo "Checking coverage thresholds..."
+        if [ -f coverage/coverage-summary.json ]; then
+          node -e "
+            const coverage = require('./coverage/coverage-summary.json');
+            const total = coverage.total;
+            const minCoverage = 25; // 25% minimum coverage (adjust as needed)
+            
+            console.log('Coverage Report:');
+            console.log('Lines:', total.lines.pct + '%');
+            console.log('Functions:', total.functions.pct + '%');
+            console.log('Branches:', total.branches.pct + '%');
+            console.log('Statements:', total.statements.pct + '%');
+            
+            if (total.lines.pct < minCoverage || 
+                total.functions.pct < minCoverage || 
+                total.statements.pct < minCoverage) {
+              console.error('Coverage below minimum threshold of ' + minCoverage + '%');
+              process.exit(1);
+            }
+            console.log('✅ Coverage meets minimum requirements');
+          "
+        else
+          echo "⚠️  No coverage report found, skipping threshold check"
+        fi
 
   # ============================================================================
   # SECURITY SCANNING PHASE
@@ -249,7 +332,7 @@ jobs:
   publish:
     name: Publish to npm
     runs-on: ubuntu-22.04
-    needs: [build-and-test, code-quality, security, functional-test, integration-test]
+    needs: [build-and-test, code-quality, unit-tests, security, functional-test, integration-test]
     if: github.event_name == 'release' && github.event.action == 'created'
     permissions:
       contents: write  # Required for uploading release assets

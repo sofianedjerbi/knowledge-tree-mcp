@@ -1,0 +1,45 @@
+{
+  "title": "Knowledge Entry Structure and Best Practices",
+  "priority": "CRITICAL",
+  "problem": "Creating well-structured knowledge entries requires understanding the proper format, field requirements, and best practices for content organization to ensure entries are discoverable and useful.",
+  "solution": "Follow the standardized knowledge entry structure with required fields and consistent formatting:\n\n## Required Fields Structure\n```markdown\n---\ntitle: Descriptive Entry Title\npriority: CRITICAL|REQUIRED|COMMON|EDGE-CASE\ntags: [relevant, searchable, keywords]\n---\n\n# Problem\nClear statement of the issue or need this entry addresses.\n\n# Context\nBackground information explaining when/why this is relevant.\n\n# Solution\nStep-by-step solution or best practice recommendation.\n\n# Examples\n\n## Example Title\n*Brief description of what this example shows*\n\n```language\ncode example here\n```\n\n# Related\n- relationship: path/to/related-entry.json - Description of relationship\n```\n\n## Best Practices\n1. **Title**: 3-7 words, descriptive, no project name\n2. **Priority**: Use appropriate level based on usage frequency\n3. **Tags**: 3-5 specific, searchable keywords\n4. **Examples**: Always include practical code examples\n5. **Relationships**: Link to 3-5 most relevant entries",
+  "tags": [
+    "knowledge-entry",
+    "structure",
+    "best-practices",
+    "documentation"
+  ],
+  "context": "Production applications need to handle transient failures gracefully. Without retry logic, temporary issues can cause unnecessary failures and poor user experience.",
+  "examples": [
+    {
+      "title": "Bad Pattern",
+      "description": "Simple retry without backoff causes server overload",
+      "code": "async function apiCall(url) {\n  for (let i = 0; i < 3; i++) {\n    try {\n      return await fetch(url);\n    } catch (e) {\n      // Immediate retry can overload server\n    }\n  }\n  throw new Error('Failed after 3 attempts');\n}",
+      "language": "javascript"
+    },
+    {
+      "title": "Good Pattern",
+      "description": "Exponential backoff with jitter",
+      "code": "async function apiCallWithRetry(url, maxAttempts = 3) {\n  let lastError;\n  \n  for (let attempt = 0; attempt < maxAttempts; attempt++) {\n    try {\n      const response = await fetch(url);\n      if (response.ok) return response;\n      \n      // Only retry on 5xx errors\n      if (response.status >= 500) {\n        lastError = new Error(`HTTP ${response.status}`);\n      } else {\n        throw new Error(`HTTP ${response.status}: Not retryable`);\n      }\n    } catch (error) {\n      lastError = error;\n      // Don't retry on client errors\n      if (!isRetryable(error)) throw error;\n    }\n    \n    // Calculate delay with exponential backoff and jitter\n    if (attempt < maxAttempts - 1) {\n      const baseDelay = 100;\n      const delay = baseDelay * Math.pow(2, attempt);\n      const jitter = delay * 0.1 * Math.random();\n      await new Promise(resolve => setTimeout(resolve, delay + jitter));\n    }\n  }\n  \n  throw lastError;\n}\n\nfunction isRetryable(error) {\n  return error.code === 'NETWORK_ERROR' || \n         error.message.includes('timeout');\n}"
+    }
+  ],
+  "created_at": "2025-08-03T16:27:04.578Z",
+  "updated_at": "2025-08-04T11:14:27.915Z",
+  "related_to": [
+    {
+      "path": "backend/architecture/knowledge-tree-mcp-architecture-overview.json",
+      "relationship": "related",
+      "description": "Defines the structure of knowledge entries stored in the system"
+    },
+    {
+      "path": "llm/documentation/priority-system-usage-guide.json",
+      "relationship": "related",
+      "description": "Provides detailed guidance on the priority field of knowledge entries"
+    },
+    {
+      "path": "llm/guides/knowledge-relationship-types-guide.json",
+      "relationship": "related",
+      "description": "Both provide guidance on creating well-structured knowledge entries"
+    }
+  ]
+}

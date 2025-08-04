@@ -1,0 +1,30 @@
+{
+  "title": "Testing Strategies and Patterns",
+  "priority": "COMMON",
+  "problem": "Knowledge Tree MCP requires comprehensive testing strategies to ensure reliability, maintainability, and proper error handling across all tool operations.",
+  "solution": "Implement a multi-layered testing approach with Vitest:\n\n## Unit Testing Patterns\n- Mock file system operations consistently\n- Test tool handlers in isolation \n- Validate MCP response structures\n- Use test utilities for common patterns\n\n## Integration Testing\n- Test complete workflows end-to-end\n- Verify tool interactions work together\n- Test with realistic knowledge entry data\n- Validate WebSocket communication\n\n## Error Scenario Testing\n- Test file system permission errors\n- Validate malformed input handling\n- Test network failure scenarios\n- Verify graceful degradation",
+  "tags": [
+    "testing",
+    "vitest",
+    "unit-tests",
+    "integration-tests",
+    "patterns"
+  ],
+  "context": "Knowledge Tree MCP uses Vitest for testing with specific patterns for mocking file operations, testing async tool handlers, and validating MCP responses. The test suite includes unit tests, integration tests, and end-to-end scenarios.",
+  "examples": [
+    {
+      "title": "Complete Test Suite Example",
+      "code": "// test/operations/comprehensive.test.ts\nimport { describe, it, expect, beforeEach } from 'vitest';\nimport { addKnowledgeHandler } from '../../src/tools/add.js';\nimport { searchKnowledgeHandler } from '../../src/tools/search.js';\nimport { updateKnowledgeHandler } from '../../src/tools/update.js';\nimport { deleteKnowledgeHandler } from '../../src/tools/delete.js';\nimport { createMockContext, createTestMarkdown, expectValidMCPResponse } from '../utils/index.js';\n\ndescribe('Knowledge Management Integration', () => {\n  let context: ServerContext;\n\n  beforeEach(() => {\n    context = createMockContext();\n  });\n\n  describe('Happy Path Scenarios', () => {\n    it('should complete full lifecycle successfully', async () => {\n      // Create\n      const createResult = await addKnowledgeHandler({\n        content: createTestMarkdown('Integration Test Entry', 'REQUIRED', {\n          tags: ['test', 'integration', 'example']\n        })\n      }, context);\n\n      expectValidMCPResponse(createResult);\n      expect(createResult.content[0].text).toMatch(/Created successfully/);\n\n      // Search\n      const searchResult = await searchKnowledgeHandler({\n        query: 'Integration Test'\n      }, context);\n\n      expectValidMCPResponse(searchResult);\n      expect(searchResult.content[0].text).toMatch(/Found \\d+ result/);\n\n      // Update\n      const updateResult = await updateKnowledgeHandler({\n        path: 'integration-test-entry', // Auto-generated path\n        updates: {\n          priority: 'CRITICAL',\n          tags: ['test', 'integration', 'updated']\n        }\n      }, context);\n\n      expectValidMCPResponse(updateResult);\n\n      // Verify update\n      const verifyResult = await searchKnowledgeHandler({\n        priority: ['CRITICAL']\n      }, context);\n\n      expect(verifyResult.content[0].text).toContain('Integration Test');\n\n      // Delete\n      const deleteResult = await deleteKnowledgeHandler({\n        path: 'integration-test-entry'\n      }, context);\n\n      expectValidMCPResponse(deleteResult);\n    });\n  });\n\n  describe('Error Scenarios', () => {\n    it('should handle invalid input gracefully', async () => {\n      await expect(\n        addKnowledgeHandler({ content: 'invalid-markdown' }, context)\n      ).rejects.toThrow();\n\n      await expect(\n        updateKnowledgeHandler({ path: 'non-existent' }, context)\n      ).rejects.toThrow(/not found/);\n\n      await expect(\n        deleteKnowledgeHandler({ path: '' }, context)\n      ).rejects.toThrow(/required/);\n    });\n  });\n});",
+      "language": "typescript"
+    }
+  ],
+  "created_at": "2025-08-03T16:57:41.582Z",
+  "updated_at": "2025-08-04T11:14:54.799Z",
+  "related_to": [
+    {
+      "path": "backend/patterns/common-development-patterns-anti-patterns.json",
+      "relationship": "implements",
+      "description": "Testing patterns implement the development patterns described in the common patterns guide"
+    }
+  ]
+}

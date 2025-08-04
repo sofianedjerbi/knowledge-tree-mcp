@@ -123,7 +123,7 @@ export class MCPHandlers {
    */
   static getServerInfo() {
     return {
-      name: "knowledge-tree-mcp",
+      name: "knowledge",
       version: "1.0.0",
     };
   }

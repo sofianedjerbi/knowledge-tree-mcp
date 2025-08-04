@@ -108,7 +108,7 @@ export const toolDefinitions = [
   // 1. ESSENTIAL - Get help and understand the system
   {
     name: "help",
-    description: "Get comprehensive help on using the Knowledge Tree MCP system",
+    description: "Get comprehensive help on using the Knowledge MCP system",
     inputSchema: {
       type: "object",
       properties: {

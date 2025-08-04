@@ -1,4 +1,4 @@
-# 🌳 Knowledge Tree MCP Server
+# 🌳 Knowledge MCP Server
 
 > **Hierarchical knowledge management system for AI assistants**  
 > Transform scattered project insights into an organized, searchable knowledge base with intelligent relationships and priority-based organization.
@@ -61,13 +61,13 @@ Real-time web UI with graph visualization, tree explorer, and analytics
 
 ```bash
 # 🎯 Simple installation
-claude mcp add knowledge-tree npx -- -y @sofianedjerbi/knowledge-tree-mcp
+claude mcp add knowledge npx -- -y @sofianedjerbi/knowledge-tree-mcp
 
 # 🎨 With web interface on port 3000
-claude mcp add knowledge-tree npx -- -y @sofianedjerbi/knowledge-tree-mcp -- --port 3000
+claude mcp add knowledge npx -- -y @sofianedjerbi/knowledge-tree-mcp -- --port 3000
 
 # 📁 Custom docs location + web UI
-claude mcp add knowledge-tree npx -- -y @sofianedjerbi/knowledge-tree-mcp -- --docs /path/to/docs --port 3000
+claude mcp add knowledge npx -- -y @sofianedjerbi/knowledge-tree-mcp -- --docs /path/to/docs --port 3000
 ```
 
 ### Local Development

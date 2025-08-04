@@ -1,6 +1,6 @@
 /**
  * Help tool implementation
- * Provides context-aware help for using the Knowledge Tree MCP system
+ * Provides context-aware help for using the Knowledge MCP system
  * Optimized for AI/LLM consumption with structured markdown
  */
 
@@ -11,7 +11,7 @@ import { HELP_TOPICS } from '../constants/index.js';
  * Help texts for different topics - AI-optimized markdown format
  */
 const helpTexts: Record<string, string> = {
-  overview: `# 📚 Knowledge Tree MCP - AI-Optimized Guide
+  overview: `# 📚 Knowledge MCP - AI-Optimized Guide
 
 ## 🎯 Purpose
 A structured knowledge management system for AI assistants to maintain project-specific context, patterns, and decisions.
@@ -183,7 +183,7 @@ category/subcategory/descriptive-name.json
 
 ### 2. Input/Output Format Policy
 
-**IMPORTANT**: Knowledge Tree MCP uses a strict format policy:
+**IMPORTANT**: Knowledge MCP uses a strict format policy:
 
 - **Storage**: Always JSON (for reliability and structure)
 - **Input**: Always Markdown (AI-friendly)
@@ -1009,7 +1009,7 @@ Remember: Good categories = Better organization = Easier knowledge retrieval`
 export const helpHandler: ToolHandler = async (args: HelpArgs): Promise<MCPResponse> => {
   const { topic } = args;
   
-  const helpText = topic ? helpTexts[topic] : `# 📚 Knowledge Tree MCP - Straightforward Usage Guide
+  const helpText = topic ? helpTexts[topic] : `# 📚 Knowledge MCP - Straightforward Usage Guide
 
 ## 🚀 Essential Workflows
 

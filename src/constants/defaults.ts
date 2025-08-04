@@ -79,7 +79,7 @@ export const FILE_CONSTANTS = {
  * Server configuration defaults
  */
 export const SERVER_DEFAULTS = {
-  NAME: 'knowledge-tree-mcp',
+  NAME: 'knowledge',
   VERSION: '1.0.0',
   DEFAULT_PORT: 3000,
   WEBSOCKET_PATH: '/ws',

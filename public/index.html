@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Knowledge Tree Dashboard</title>
+    <title>Knowledge Dashboard</title>
     
     <!-- Chart.js for data visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1062,7 +1062,7 @@
     <div class="dashboard">
         <!-- Header -->
         <div class="header">
-            <h1 class="header-title">Knowledge Tree Dashboard</h1>
+            <h1 class="header-title">Knowledge Dashboard</h1>
             <div class="connection-status">
                 <div class="status-indicator" id="statusIndicator"></div>
                 <span id="statusText">Connecting...</span>
@@ -1074,7 +1074,7 @@
             <div class="sidebar-brand">
                 <div class="brand-title">
                     <i data-lucide="book-open" style="width: 24px; height: 24px; margin-right: 8px; vertical-align: middle;"></i>
-                    Knowledge Tree
+                    Knowledge
                 </div>
                 <div class="brand-subtitle">MCP Dashboard</div>
             </div>
@@ -2828,7 +2828,7 @@
         
         // Build tree structure from flat knowledge map
         function buildTreeStructure() {
-            const tree = { name: 'Knowledge Tree', children: {}, entries: [] };
+            const tree = { name: 'Knowledge', children: {}, entries: [] };
             
             knowledgeMap.forEach((entry, path) => {
                 const parts = path.split('/');

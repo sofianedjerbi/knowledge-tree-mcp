@@ -10,10 +10,16 @@ import {
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
 import type { ServerContext } from '../types/index.js';
 import { toolHandlers, toolDefinitions } from '../tools/index.js';
 import { getDescriptionFromPath } from '../utils/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(readFileSync(join(__dirname, '../../../package.json'), 'utf-8'));
 
 /**
  * MCP Protocol handler class
@@ -124,7 +130,7 @@ export class MCPHandlers {
   static getServerInfo() {
     return {
       name: "knowledge",
-      version: "1.0.0",
+      version: packageJson.version,
     };
   }
 }

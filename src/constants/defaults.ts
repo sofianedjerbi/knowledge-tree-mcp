@@ -80,7 +80,7 @@ export const FILE_CONSTANTS = {
  */
 export const SERVER_DEFAULTS = {
   NAME: 'knowledge',
-  VERSION: '1.0.0',
+  VERSION: '2.0.0', // Note: Actual version is read from package.json in MCPHandlers
   DEFAULT_PORT: 3000,
   WEBSOCKET_PATH: '/ws',
   HOST: '0.0.0.0',

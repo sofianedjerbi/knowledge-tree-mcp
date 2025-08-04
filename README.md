@@ -3,6 +3,9 @@
 > **Hierarchical knowledge management system for AI assistants**  
 > Transform scattered project insights into an organized, searchable knowledge base with intelligent relationships and priority-based organization.
 
+[![npm version](https://img.shields.io/npm/v/@sofianedjerbi/knowledge-tree-mcp)](https://www.npmjs.com/package/@sofianedjerbi/knowledge-tree-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ---
 
 ## ✨ Features
@@ -11,8 +14,8 @@
 <tr>
 <td width="33%">
 
-### 🏗️ **Hierarchical Structure**
-Organize knowledge in intuitive folder hierarchies with clear categorization
+### 🏗️ **Smart Organization**
+Auto-categorized paths with custom overrides and project-specific categories
 
 </td>
 <td width="33%">
@@ -23,28 +26,28 @@ Four-tier priority system: **CRITICAL** → **REQUIRED** → **COMMON** → **ED
 </td>
 <td width="33%">
 
-### 🔗 **Smart Relationships**
-Link related knowledge with bidirectional relationships and validation
+### 🔗 **Relationship Mapping**
+Six relationship types with bidirectional validation and automatic linking
 
 </td>
 </tr>
 <tr>
 <td>
 
-### 🔍 **Powerful Search**
-Full-text search with wildcards, priority filtering, and category-based discovery
+### 🔍 **Advanced Search**
+Full-text search with regex, field-specific targeting, and multi-criteria filtering
 
 </td>
 <td>
 
 ### 📊 **Usage Analytics**
-Track access patterns, popular searches, and knowledge utilization over time
+Track access patterns, search trends, and tool usage with privacy-first design
 
 </td>
 <td>
 
-### 🌐 **Web Interface**
-Visual knowledge graph browser with interactive exploration
+### 🌐 **Interactive Dashboard**
+Real-time web UI with graph visualization, tree explorer, and analytics
 
 </td>
 </tr>
@@ -54,13 +57,13 @@ Visual knowledge graph browser with interactive exploration
 
 ## 🚀 Quick Start
 
-### Using with Claude (Recommended)
+### Using with Claude Desktop (Recommended)
 
 ```bash
 # 🎯 Simple installation
 claude mcp add knowledge-tree npx -- -y @sofianedjerbi/knowledge-tree-mcp
 
-# 🎨 With web interface
+# 🎨 With web interface on port 3000
 claude mcp add knowledge-tree npx -- -y @sofianedjerbi/knowledge-tree-mcp -- --port 3000
 
 # 📁 Custom docs location + web UI
@@ -71,141 +74,174 @@ claude mcp add knowledge-tree npx -- -y @sofianedjerbi/knowledge-tree-mcp -- --d
 
 ```bash
 # 📦 Setup
-git clone <repo>
+git clone https://github.com/sofianedjerbi/knowledge-tree-mcp
 cd knowledge-tree-mcp
 npm install && npm run build
 
-# 🏃‍♂️ Run
-npm start                              # Default setup
-npm start -- --port 3000             # With web interface  
-npm start -- --docs /custom/path     # Custom docs directory
+# 🏃 Run with web interface
+npm start -- --port 3000
+
+# 🧪 Run tests
+npm test
 ```
 
 **CLI Options:**
 - `--docs, -d <path>` → Documentation directory (default: `./docs`)
-- `--port, -p <number>` → Web interface port (enables UI)
+- `--port, -p <number>` → Web interface port (enables UI at http://localhost:PORT)
 - `--help, -h` → Show help
 
 ---
 
-## 🛠️ Available Tools
+## 🛠️ Core Tools
 
 <details>
-<summary><b>🆘 1. help</b> - Get comprehensive guidance</summary>
+<summary><b>📝 add_knowledge</b> - Create entries with auto-generated paths</summary>
 
-**Get contextual help for using the Knowledge Tree MCP system**
-
-```typescript
-help(topic?: string)
-```
-
-**Topics:**
-- `overview` → General introduction and concepts
-- `creating` → How to create knowledge entries  
-- `linking` → Managing relationships between entries
-- `searching` → Finding and filtering knowledge
-- `validating` → Checking consistency and errors
-- `examples` → Real-world usage examples
-
-**Examples:**
-```bash
-"help"                           # General help
-"help me create knowledge entries" # Specific guidance
-```
-
-</details>
-
-<details>
-<summary><b>🗺️ 2. index_knowledge</b> - Get complete knowledge overview</summary>
-
-**Perfect for LLMs: Get instant overview of entire knowledge base**
-
-```typescript
-index_knowledge({
-  format?: "tree" | "list" | "summary" | "categories",
-  include_content?: boolean,
-  max_entries?: number
-})
-```
-
-**Formats:**
-- 🌳 `tree` → Hierarchical folder structure (default)
-- 📋 `list` → Flat list with metadata
-- 📄 `summary` → Detailed entries with file stats  
-- 📁 `categories` → Grouped by directory/category
-
-**Examples:**
-```bash
-"Show me the knowledge index"       # Tree overview
-"List all entries with content"     # Content preview
-"Show knowledge by categories"      # Organized view
-```
-
-> **🧠 LLM Benefit:** Provides instant context about entire knowledge base without multiple queries!
-
-</details>
-
-<details>
-<summary><b>🔍 3. search_knowledge</b> - Find specific knowledge</summary>
-
-**Search through your knowledge base with powerful filters**
-
-```typescript
-search_knowledge({
-  priority?: string[],
-  category?: string,
-  keyword?: string  // Supports wildcards: *, ?
-})
-```
-
-**Search Types:**
-- 🎯 **Priority:** `CRITICAL`, `REQUIRED`, `COMMON`, `EDGE-CASE`
-- 📁 **Category:** Search within folders (`testing`, `architecture`)
-- 🔎 **Keyword:** Full-text with wildcards (`auth*`, `test?ng`)
-
-**Examples:**
-```bash
-"Search for all CRITICAL knowledge"
-"Find knowledge about testing"  
-"Search for auth* patterns"         # Wildcard search
-"Find REQUIRED authentication entries"
-```
-
-</details>
-
-<details>
-<summary><b>➕ 4. add_knowledge</b> - Create new entries</summary>
-
-**Create new knowledge entries with validation and auto-linking**
+**Create knowledge entries from Markdown with automatic categorization**
 
 ```typescript
 add_knowledge({
-  path: string,           // e.g., "testing/forbidden/CRITICAL-no-mocks"
-  priority: string,       // CRITICAL | REQUIRED | COMMON | EDGE-CASE
-  problem: string,        // What issue this solves
-  solution: string,       // How to solve/avoid it
-  code?: string,          // Optional code examples
-  related_to?: Array<{    // Optional relationships
-    path: string,
-    relationship: string,
-    description?: string
-  }>
+  content: string,     // Markdown with frontmatter
+  path?: string        // Optional: override auto-generated path
 })
 ```
 
-**Examples:**
+**Auto-Path Generation Examples:**
+- "How to implement JWT authentication" → `security/authentication/jwt-implementation.json`
+- "Fix Redis connection timeout" → `database/redis/troubleshooting/connection-timeout.json`
+- "React hooks best practices" → `frontend/react/best-practices/hooks.json`
+
+**Markdown Format:**
+```markdown
+---
+title: Implement JWT refresh token rotation
+priority: REQUIRED
+tags: [jwt, authentication, security]
+---
+
+# Problem
+JWT tokens expire but users need seamless authentication
+
+# Context
+Mobile apps and SPAs need to maintain auth state without frequent logins
+
+# Solution
+Implement refresh token rotation with secure storage...
+
+# Examples
+```typescript
+// Token rotation implementation
+const refreshToken = async () => {
+  // Implementation here
+}
+```
+```
+
+**Path Override Options:**
 ```bash
-"Add knowledge about avoiding test workarounds"
-"Document a critical architecture decision"
-"Record JWT authentication pattern that supersedes sessions"
+# Full custom path
+add_knowledge(path: "security/auth/my-jwt-guide", content: "...")
+
+# Directory only (filename from title)
+add_knowledge(path: "security/auth/", content: "...")
 ```
 
 </details>
 
 <details>
-<summary><b>🔗 5. link_knowledge</b> - Connect related entries</summary>
+<summary><b>🔍 search_knowledge</b> - Find entries with advanced filtering</summary>
 
-**Create relationships between knowledge entries**
+**Search with field-specific targeting and multi-criteria filtering**
+
+```typescript
+search_knowledge({
+  query?: string,              // Search text (supports regex)
+  searchIn?: string[],         // Fields to search
+  priority?: string[],         // Filter by priorities
+  category?: string,           // Filter by category
+  sortBy?: string,            // Sort results
+  limit?: number,             // Max results
+  regex?: boolean,            // Enable regex mode
+  caseSensitive?: boolean     // Case sensitivity
+})
+```
+
+**Search Fields:**
+- `title`, `problem`, `solution`, `context`, `code`, `tags`, `path`, `all`
+
+**Examples:**
+```bash
+# Simple search
+search_knowledge(query: "authentication")
+
+# Field-specific search
+search_knowledge(query: "JWT", searchIn: ["title", "tags"])
+
+# Multi-criteria filtering
+search_knowledge(
+  priority: ["CRITICAL", "REQUIRED"],
+  category: "security",
+  query: "vulnerability"
+)
+
+# Regex search
+search_knowledge(
+  query: "use(State|Effect|Memo)",
+  regex: true,
+  searchIn: ["code"]
+)
+
+# Find all entries (wildcard)
+search_knowledge(query: "*")
+```
+
+</details>
+
+<details>
+<summary><b>🏷️ manage_categories</b> - Dynamic category management</summary>
+
+**Add, update, remove, and merge categories for better organization**
+
+```typescript
+manage_categories({
+  action: "add" | "update" | "remove" | "list" | "merge",
+  category?: string,
+  keywords?: string[],
+  subcategories?: string[],
+  scope?: "project" | "system" | "both",
+  description?: string
+})
+```
+
+**Examples:**
+```bash
+# List all categories
+manage_categories(action: "list", scope: "both")
+
+# Add project-specific category
+manage_categories(
+  action: "add",
+  category: "payment-gateway",
+  keywords: ["stripe", "paypal", "payment", "checkout"],
+  subcategories: ["stripe", "paypal", "square"],
+  scope: "project"
+)
+
+# Merge keywords without replacing
+manage_categories(
+  action: "merge",
+  category: "frontend",
+  keywords: ["svelte", "sveltekit"],
+  scope: "system"
+)
+```
+
+</details>
+
+<details>
+<summary><b>🔗 link_knowledge</b> - Connect related entries</summary>
+
+**Create typed relationships between knowledge entries**
 
 ```typescript
 link_knowledge({
@@ -219,181 +255,197 @@ link_knowledge({
 **Relationship Types:**
 - 🤝 `related` → General connection (bidirectional)
 - ⬆️ `supersedes` → This replaces the target
-- ⬇️ `superseded_by` → This is replaced by target  
+- ⬇️ `superseded_by` → This is replaced by target
 - ⚡ `conflicts_with` → Conflicting approaches (bidirectional)
 - 🔧 `implements` → Implementation of a pattern
 - 📋 `implemented_by` → Has implementations
 
-**Examples:**
-```bash
-"Link JWT pattern to session auth as supersedes"
-"Mark two auth approaches as conflicting"
-"Connect related error handling strategies"
-```
-
 </details>
 
 <details>
-<summary><b>✅ 6. validate_knowledge</b> - Check consistency</summary>
+<summary><b>🗺️ index_knowledge</b> - Browse knowledge structure</summary>
 
-**Validate your knowledge base for errors and inconsistencies**
+**Get comprehensive overview of your knowledge base**
 
 ```typescript
-validate_knowledge({
-  path?: string,    // Optional: specific entry or all
-  fix?: boolean     // Optional: attempt fixes
+index_knowledge({
+  format?: "tree" | "list" | "summary" | "categories",
+  include_content?: boolean,
+  max_entries?: number
 })
 ```
 
-**Validation Checks:**
-- 🔗 Broken links between entries
-- 📁 Missing referenced files  
-- 🔄 Bidirectional relationship consistency
-- 📝 JSON format validation
-- 🏷️ Priority-filename matching
-
-**Examples:**
-```bash
-"Validate all knowledge entries"
-"Validate and fix any issues"
-"Check if testing/CRITICAL-no-mocks.json is valid"
-```
+**Formats:**
+- 🌳 `tree` → Hierarchical folder structure
+- 📋 `list` → Flat list with metadata
+- 📊 `summary` → Statistics and overview
+- 📁 `categories` → Grouped by category
 
 </details>
 
 <details>
-<summary><b>📊 7. usage_analytics</b> - Track usage patterns</summary>
+<summary><b>📊 usage_analytics</b> - Track usage patterns</summary>
 
-**Get comprehensive usage analytics for your knowledge base**
+**Analyze how your knowledge base is being used**
 
 ```typescript
 usage_analytics({
-  days?: number,      // Analysis period (default: 30)
-  include?: string[]  // Analytics types
+  days?: number,
+  include?: string[]
 })
 ```
 
 **Analytics Types:**
-- 👀 `access` → Entry access patterns and most viewed
-- 🔎 `searches` → Popular queries and search patterns  
+- 👁️ `access` → Entry access patterns
+- 🔍 `searches` → Search query analysis
 - 🛠️ `tools` → Tool usage statistics
-- ⏰ `patterns` → Activity patterns by time and type
+- 🌐 `interface` → Web UI interactions
+- 📈 `patterns` → Usage trends over time
 
-**Examples:**
-```bash
-"Show usage analytics for last 7 days"
-"Get search analytics only"
-"Show access patterns for last month"
-```
+</details>
 
-> **🔒 Privacy:** Add `docs/logs/` to `.gitignore` to keep analytics private
+<details>
+<summary><b>✅ More Tools</b> - Additional capabilities</summary>
+
+- **update_knowledge** → Modify existing entries
+- **delete_knowledge** → Remove entries with cleanup
+- **validate_knowledge** → Check consistency and fix issues
+- **export_knowledge** → Generate documentation (MD/HTML/JSON)
+- **stats_knowledge** → Get detailed statistics
+- **recent_knowledge** → View recent changes
+- **setup_project** → Configure project settings
+- **help** → Get contextual guidance
 
 </details>
 
 ---
 
-## 🌐 Resources & Depth Traversal
+## 🌐 Web Dashboard
 
-The server exposes all JSON files as browsable resources with intelligent depth traversal:
+Access the interactive dashboard at `http://localhost:3000` (when using `--port 3000`)
 
-```bash
-# Basic entry
-knowledge://testing/CRITICAL-no-mocks.json
+### Features:
+- 📊 **Overview Dashboard** → KPIs, activity metrics, tag cloud
+- 🕸️ **Knowledge Graph** → Interactive network visualization with physics simulation
+- 🌲 **Knowledge Explorer** → Hierarchical tree view with expand/collapse
+- 🔍 **Search Interface** → Real-time search with filters
+- 📈 **Analytics View** → Usage patterns and trends
+- 🔄 **Recent Activity** → Latest additions and modifications
 
-# With linked entries  
-knowledge://auth/patterns/REQUIRED-jwt.json?depth=2
-
-# Deep exploration
-knowledge://architecture/csr/patterns.json?depth=3
-```
-
-**Depth Levels:**
-- `depth=1` → Just the entry itself
-- `depth=2` → Entry + directly linked entries  
-- `depth=3` → Entry + linked entries + their links
-- `depth=N` → Continue traversal N levels deep
-
-> **🕸️ Knowledge Graph:** Explore related concepts without multiple queries!
+### Graph Visualization:
+- **Continuous Physics** → Nodes auto-arrange to prevent overlaps
+- **Priority Colors** → Visual distinction by importance
+- **Relationship Lines** → See connections between entries
+- **Fullscreen Mode** → Maximize for large knowledge bases
+- **Search & Filter** → Find specific nodes with dimming highlight
 
 ---
 
-## 💡 Example Usage Patterns
+## 🏗️ Project Configuration
 
-<table>
-<tr>
-<td width="50%">
+Create project-specific settings with `setup_project`:
 
-### 🎯 **For New Projects**
-```bash
-# Get oriented
-"Show me the knowledge index"
-
-# Understand critical issues  
-"Search for all CRITICAL knowledge"
-
-# Learn about specific area
-"Find knowledge about testing"
-```
-
-</td>
-<td width="50%">
-
-### 🔄 **For Ongoing Work**
-```bash
-# Quick context refresh
-"Get tree view of authentication knowledge"
-
-# Find solutions
-"Search for error handling patterns"
-
-# Add new insights
-"Add knowledge about API rate limiting"
-```
-
-</td>
-</tr>
-</table>
-
----
-
-## 📋 Knowledge Entry Format
-
-### Basic Structure
-```json
-{
-  "priority": "CRITICAL",
-  "problem": "AI creates TODO comments instead of implementing",
-  "solution": "Complete the implementation immediately",
-  "code": "// Example demonstrating the complete pattern",
-  "related_to": [
-    {
-      "path": "code-quality/REQUIRED-complete-implementations.json",
-      "relationship": "related",
-      "description": "General principle about complete implementations"
-    }
-  ]
-}
-```
-
-### With Depth Traversal
-```json
-{
-  "path": "code-quality/forbidden/CRITICAL-no-todo.json",
-  "priority": "CRITICAL", 
-  "problem": "AI creates TODO comments instead of implementing",
-  "solution": "Complete the implementation immediately",
-  "linked_entries": {
-    "code-quality/REQUIRED-complete-implementations.json": {
-      "relationship": "related",
-      "content": {
-        "priority": "REQUIRED",
-        "problem": "Incomplete implementations break production",
-        "solution": "Always write complete, working code"
-      }
+```javascript
+setup_project({
+  action: "init",
+  name: "My Project",
+  pathPrefix: "my-project",
+  technologies: ["nodejs", "react", "postgres"],
+  categories: {
+    "payments": {
+      keywords: ["stripe", "billing", "subscription"],
+      subcategories: ["webhooks", "invoices"]
     }
   }
-}
+})
 ```
+
+This creates `.knowledge-tree.json` in your docs directory for:
+- Custom categories and keywords
+- Auto-tagging rules
+- Path prefix for all entries
+- Technology stack awareness
+
+---
+
+## 📂 Directory Structure
+
+```
+docs/
+├── .knowledge-tree.json      # Project configuration
+├── logs/
+│   └── usage.jsonl          # Usage analytics (gitignored)
+├── frontend/
+│   ├── react/
+│   │   └── hooks/
+│   └── performance/
+├── backend/
+│   ├── api/
+│   ├── database/
+│   └── security/
+├── testing/
+│   ├── unit/
+│   └── integration/
+└── architecture/
+    ├── patterns/
+    └── decisions/
+```
+
+---
+
+## 🔐 Privacy & Security
+
+- **Local First**: All data stored locally in your project
+- **No Telemetry**: Zero external data collection
+- **Git Friendly**: JSON format for version control
+- **Private Analytics**: Usage logs in `.gitignore` by default
+
+---
+
+## 🧪 Development
+
+```bash
+# Run tests
+npm test
+
+# Run with file watching
+npm run dev
+
+# Build TypeScript
+npm run build
+
+# Lint & format
+npm run lint
+npm run format
+
+# Type checking
+npm run typecheck
+```
+
+### Architecture:
+- **TypeScript** with strict mode
+- **Modular design** with clear separation of concerns
+- **MCP SDK** for Claude integration
+- **Fastify** for web server
+- **Vis.js** for graph visualization
+- **WebSockets** for real-time updates
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Add tests for new functionality
+4. Ensure all tests pass
+5. Submit a pull request
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file
 
 ---
 
@@ -405,6 +457,6 @@ knowledge://architecture/csr/patterns.json?depth=3
 
 <div align="center">
 
-**🌟 Star this project if it helps organize your knowledge!**
+**🌟 Star this project if it helps organize your AI assistant's knowledge!**
 
 </div>

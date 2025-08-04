@@ -137,13 +137,13 @@ const refreshToken = async () => {
 ```
 ```
 
-**Path Override Options:**
+**Path Override Options (Ask your AI assistant):**
 ```bash
 # Full custom path
-add_knowledge(path: "security/auth/my-jwt-guide", content: "...")
+"Add this JWT guide to security/auth/my-jwt-guide"
 
 # Directory only (filename from title)
-add_knowledge(path: "security/auth/", content: "...")
+"Add this authentication knowledge to the security/auth/ directory"
 ```
 
 </details>
@@ -169,30 +169,22 @@ search_knowledge({
 **Search Fields:**
 - `title`, `problem`, `solution`, `context`, `code`, `tags`, `path`, `all`
 
-**Examples:**
+**Examples (Ask your AI assistant):**
 ```bash
 # Simple search
-search_knowledge(query: "authentication")
+"Search for authentication patterns"
 
-# Field-specific search
-search_knowledge(query: "JWT", searchIn: ["title", "tags"])
+# Field-specific search  
+"Find entries with JWT in the title or tags"
 
 # Multi-criteria filtering
-search_knowledge(
-  priority: ["CRITICAL", "REQUIRED"],
-  category: "security",
-  query: "vulnerability"
-)
+"Show me all CRITICAL and REQUIRED security vulnerabilities"
 
 # Regex search
-search_knowledge(
-  query: "use(State|Effect|Memo)",
-  regex: true,
-  searchIn: ["code"]
-)
+"Search for React hooks usage in code (useState, useEffect, useMemo)"
 
-# Find all entries (wildcard)
-search_knowledge(query: "*")
+# Find all entries
+"Show me all knowledge entries"
 ```
 
 </details>
@@ -213,27 +205,16 @@ manage_categories({
 })
 ```
 
-**Examples:**
+**Examples (Ask your AI assistant):**
 ```bash
 # List all categories
-manage_categories(action: "list", scope: "both")
+"Show me all available categories"
 
 # Add project-specific category
-manage_categories(
-  action: "add",
-  category: "payment-gateway",
-  keywords: ["stripe", "paypal", "payment", "checkout"],
-  subcategories: ["stripe", "paypal", "square"],
-  scope: "project"
-)
+"Add a payment-gateway category for Stripe and PayPal integrations"
 
 # Merge keywords without replacing
-manage_categories(
-  action: "merge",
-  category: "frontend",
-  keywords: ["svelte", "sveltekit"],
-  scope: "system"
-)
+"Add Svelte and SvelteKit to the frontend category keywords"
 ```
 
 </details>
@@ -343,9 +324,13 @@ Access the interactive dashboard at `http://localhost:3000` (when using `--port 
 
 ## 🏗️ Project Configuration
 
-Create project-specific settings with `setup_project`:
+The AI assistant can configure project-specific settings using `setup_project`:
 
 ```javascript
+// Ask your AI assistant to run this:
+"Initialize project configuration for our Next.js app with Stripe payments"
+
+// The AI will execute:
 setup_project({
   action: "init",
   name: "My Project",
@@ -368,28 +353,32 @@ This creates `.knowledge-tree.json` in your docs directory for:
 
 ---
 
-## 📂 Directory Structure
+## 📂 Example Directory Structure
+
+The system automatically organizes knowledge based on content. Here's a typical structure:
 
 ```
 docs/
-├── .knowledge-tree.json      # Project configuration
+├── .knowledge-tree.json      # Project configuration (auto-created)
 ├── logs/
 │   └── usage.jsonl          # Usage analytics (gitignored)
-├── frontend/
+├── frontend/                 # Auto-detected from React/Vue/UI content
 │   ├── react/
 │   │   └── hooks/
 │   └── performance/
-├── backend/
+├── backend/                  # Auto-detected from server/API content
 │   ├── api/
 │   ├── database/
 │   └── security/
-├── testing/
+├── testing/                  # Auto-detected from test-related content
 │   ├── unit/
 │   └── integration/
-└── architecture/
+└── architecture/             # Auto-detected from design/pattern content
     ├── patterns/
     └── decisions/
 ```
+
+**Note:** Directories are created automatically as you add knowledge. You don't need to create this structure manually!
 
 ---
 

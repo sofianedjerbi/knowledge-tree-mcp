@@ -37,8 +37,9 @@ export const recentKnowledgeHandler: ToolHandler = async (
   const allEntries = await context.scanKnowledgeTree();
   const entries: RecentEntry[] = [];
   
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - days);
+  // Calculate cutoff date by subtracting exact milliseconds
+  const now = new Date();
+  const cutoffDate = new Date(now.getTime() - (days * 24 * 60 * 60 * 1000));
   
   // Load entries with file stats
   for (const path of allEntries) {

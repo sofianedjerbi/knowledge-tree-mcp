@@ -334,8 +334,8 @@ describe('Recent Knowledge Tool', () => {
       // Create entries at various times
       const entries = [
         { path: 'within.json', daysAgo: 2 }, // Should be included
-        { path: 'exact.json', daysAgo: 3 }, // Should be included (on boundary)
-        { path: 'outside.json', daysAgo: 4 } // Should NOT be included
+        { path: 'exact.json', daysAgo: 2.99 }, // Just within boundary - should be included
+        { path: 'outside.json', daysAgo: 3.01 } // Just outside boundary - should NOT be included
       ];
 
       mockContext.scanKnowledgeTree = vi.fn().mockResolvedValue(

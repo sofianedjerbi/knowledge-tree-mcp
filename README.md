@@ -61,13 +61,13 @@ Real-time web UI with graph visualization, tree explorer, and analytics
 
 ```bash
 # 🎯 Simple installation
-claude mcp add knowledge npx -- -y @sofianedjerbi/knowledge-tree-mcp
+claude mcp add knowledge -- npx @sofianedjerbi/knowledge-tree-mcp
 
-# 🎨 With web interface on port 3000
-claude mcp add knowledge npx -- -y @sofianedjerbi/knowledge-tree-mcp -- --port 3000
+# 🎨 With web interface on port 9000
+claude mcp add knowledge -- npx @sofianedjerbi/knowledge-tree-mcp -- --port 9000 --docs ./docs
 
-# 📁 Custom docs location + web UI
-claude mcp add knowledge npx -- -y @sofianedjerbi/knowledge-tree-mcp -- --docs /path/to/docs --port 3000
+# 📁 Custom port and docs location
+claude mcp add knowledge -- npx @sofianedjerbi/knowledge-tree-mcp -- --port 9000 --docs /path/to/docs
 ```
 
 ### Local Development
@@ -79,7 +79,7 @@ cd knowledge-tree-mcp
 npm install && npm run build
 
 # 🏃 Run with web interface
-npm start -- --port 3000
+npm start -- --port 9000
 
 # 🧪 Run tests
 npm test
@@ -303,7 +303,7 @@ usage_analytics({
 
 ## 🌐 Web Dashboard
 
-Access the interactive dashboard at `http://localhost:3000` (when using `--port 3000`)
+Access the interactive dashboard at `http://localhost:9000` (when using `--port 9000`)
 
 ### Features:
 - 📊 **Overview Dashboard** → KPIs, activity metrics, tag cloud

@@ -57,45 +57,5 @@ async function main() {
   }
 }
 
-// Only run main if this is the entry module
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
-}
-
-// Export the server class for programmatic use
-export { KnowledgeTreeServer } from './server/index.js';
-
-// Export types for external consumers
-export type {
-  // Core types
-  KnowledgeEntry,
-  Priority,
-  RelationshipType,
-  KnowledgeRelation,
-  
-  // Server types
-  ServerContext,
-  MCPResponse,
-  ToolHandler,
-  
-  // Tool argument types
-  SearchArgs,
-  AddArgs,
-  UpdateArgs,
-  DeleteArgs,
-  LinkArgs,
-  ValidateArgs,
-  ExportArgs,
-  IndexArgs,
-  StatsArgs,
-  RecentArgs,
-  AnalyticsArgs,
-  HelpArgs
-} from './types/index.js';
-
-// Export constants for external use
-export {
-  PRIORITY_LEVELS,
-  RELATIONSHIP_TYPES,
-  BIDIRECTIONAL_RELATIONSHIPS
-} from './constants/index.js';
+// Always run main - this is the entry point
+main();

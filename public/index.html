@@ -1652,6 +1652,8 @@
                     } else {
                         // Regular recent activity display
                         displayRecentActivity(message);
+                        // Also populate the Overview page recent activity table
+                        displayRecentActivityTable(message);
                     }
                     break;
             }
@@ -2039,8 +2041,77 @@
             });
         }
 
-        function displayRecentActivityTable() {
-            // This will be populated by WebSocket message
+        function displayRecentActivityTable(data) {
+            const container = document.getElementById('recentActivityTable');
+            
+            if (!data || !data.entries || data.entries.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i data-lucide="clock" style="width: 48px; height: 48px;"></i>
+                        </div>
+                        <div class="empty-state-title">No Recent Activity</div>
+                        <div class="empty-state-description">No changes in the last ${data?.period?.days || 7} days</div>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+            
+            let html = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Entry</th>
+                            <th>Type</th>
+                            <th>Date</th>
+                            <th>Priority</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            // Show only the first 10 entries for the overview table
+            const entriesToShow = data.entries.slice(0, 10);
+            
+            entriesToShow.forEach(entry => {
+                const changeIcon = entry.change_type === 'added' ? 'plus-circle' : 'edit';
+                const changeColor = entry.change_type === 'added' ? '#10b981' : '#3b82f6';
+                const date = new Date(entry.change_type === 'added' ? entry.created_at : entry.modified_at);
+                
+                html += `
+                    <tr onclick="showEntryDetails('${entry.path}')" style="cursor: pointer;">
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i data-lucide="${changeIcon}" style="width: 16px; height: 16px; color: ${changeColor};"></i>
+                                <div>
+                                    <div style="font-weight: 500; font-size: 14px;">${entry.path.split('/').pop().replace('.json', '')}</div>
+                                    <div style="font-size: 12px; color: var(--secondary-text); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${entry.problem}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span style="color: ${changeColor}; font-size: 12px; text-transform: capitalize;">
+                                ${entry.change_type}
+                            </span>
+                        </td>
+                        <td style="font-size: 13px;">
+                            ${date.toLocaleDateString()}
+                        </td>
+                        <td>
+                            <span class="priority-badge priority-${entry.priority.toLowerCase().replace(/-/g, '_')}">${entry.priority}</span>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = html;
+            lucide.createIcons();
         }
 
         // Network graph

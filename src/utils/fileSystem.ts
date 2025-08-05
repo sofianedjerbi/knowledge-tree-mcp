@@ -26,7 +26,9 @@ export async function scanKnowledgeTree(knowledgeRoot: string): Promise<string[]
         if (item.isDirectory()) {
           await scan(fullPath);
         } else if (item.name.endsWith('.json') && item.name !== '.knowledge-tree.json') {
-          entries.push(relative(knowledgeRoot, fullPath));
+          // Normalize path separators to forward slashes for web compatibility
+          const relativePath = relative(knowledgeRoot, fullPath).replace(/\\/g, '/');
+          entries.push(relativePath);
         }
       }
     } catch (error) {

@@ -69,7 +69,19 @@ async function handleGetAll(
     try {
       const content = await readFile(fullPath);
       const entry: KnowledgeEntry = JSON.parse(content);
-      entries.push({ path, data: entry });
+      
+      // Normalize path for web compatibility (always use forward slashes)
+      const normalizedPath = path.replace(/\\/g, '/');
+      
+      // Also normalize paths in related_to links
+      if (entry.related_to) {
+        entry.related_to = entry.related_to.map(link => ({
+          ...link,
+          path: link.path.replace(/\\/g, '/')
+        }));
+      }
+      
+      entries.push({ path: normalizedPath, data: entry });
     } catch (error) {
       // Skip invalid entries
     }

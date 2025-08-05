@@ -75,7 +75,7 @@ export const usageAnalyticsHandler: ToolHandler = async (
 
       for (const log of accessLogs) {
         const date = new Date(log.timestamp);
-        const hour = date.getHours().toString();
+        const hour = date.getUTCHours().toString();
         const day = date.toISOString().split('T')[0];
         
         byHour[hour] = (byHour[hour] || 0) + 1;
@@ -185,7 +185,7 @@ export const usageAnalyticsHandler: ToolHandler = async (
       
       for (const log of activityLogs) {
         const date = new Date(log.timestamp);
-        const hour = date.getHours().toString();
+        const hour = date.getUTCHours().toString();
         const day = date.toISOString().split('T')[0];
         
         hourlyActivity[hour] = (hourlyActivity[hour] || 0) + 1;

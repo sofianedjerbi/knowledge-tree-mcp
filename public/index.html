@@ -2448,7 +2448,7 @@
         }
 
         function createHourlyActivityChart(analytics) {
-            if (!analytics.access || !analytics.access.access_patterns || !analytics.access.access_patterns.by_hour) return;
+            if (!analytics.patterns || !analytics.patterns.by_hour) return;
             
             const ctx = document.getElementById('hourlyActivityChart').getContext('2d');
             
@@ -2456,8 +2456,8 @@
                 charts.hourly.destroy();
             }
             
-            // Use actual hourly data from analytics
-            const hourlyData = analytics.access.access_patterns.by_hour;
+            // Use actual hourly data from analytics patterns
+            const hourlyData = analytics.patterns.by_hour;
             const hours = Array.from({length: 24}, (_, i) => `${i}:00`);
             const data = hours.map((_, i) => hourlyData[i.toString()] || 0);
             

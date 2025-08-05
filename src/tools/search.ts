@@ -169,26 +169,31 @@ async function matchQuery(
   // Check if query contains wildcards (* or ?)
   const hasWildcards = query.includes('*') || query.includes('?');
   
-  let searchPattern: RegExp | string;
-  if (hasWildcards) {
+  // Check if query is quoted for exact phrase matching
+  const isQuotedPhrase = (query.startsWith('"') && query.endsWith('"')) || 
+                        (query.startsWith("'") && query.endsWith("'"));
+  
+  let searchTerms: string[] = [];
+  let isExactPhrase = false;
+  
+  if (isQuotedPhrase) {
+    // Exact phrase search - remove quotes and treat as single term
+    const cleanQuery = query.slice(1, -1);
+    searchTerms = [cleanQuery];
+    isExactPhrase = true;
+  } else if (hasWildcards) {
     // Special case: single * means match everything
     if (query.trim() === '*') {
-      searchPattern = /.*/i; // Match everything (case insensitive)
       return { match: true, score: 1 };
-    } else {
-      // Convert wildcards to regex: * = .*, ? = .
-      const regexQuery = query
-        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape regex chars except * and ?
-        .replace(/\\\*/g, '.*') // Convert \* back to .*
-        .replace(/\\\?/g, '.'); // Convert \? back to .
-      searchPattern = new RegExp(regexQuery, caseSensitive ? 'g' : 'gi');
     }
+    // Wildcards - treat as single pattern
+    searchTerms = [query];
+  } else if (regex) {
+    // Regex mode - treat as single pattern
+    searchTerms = [query];
   } else {
-    searchPattern = regex 
-      ? new RegExp(query, caseSensitive ? 'g' : 'gi')
-      : caseSensitive 
-        ? query 
-        : query.toLowerCase();
+    // Multi-word search - split into individual words
+    searchTerms = query.trim().split(/\s+/).filter(term => term.length > 0);
   }
   
   const fieldsToSearch = searchIn.includes("all") 
@@ -197,6 +202,10 @@ async function matchQuery(
   
   let queryMatch = false;
   let totalScore = 0;
+  
+  // For multi-word queries, we need ALL words to match (AND logic)
+  // But they can match in different fields
+  let termMatches = new Map<string, boolean>();
   
   for (const field of fieldsToSearch) {
     let fieldValue = "";
@@ -229,36 +238,77 @@ async function matchQuery(
     
     const testValue = caseSensitive ? fieldValue : fieldValue.toLowerCase();
     
-    if (regex || hasWildcards) {
-      const matches = testValue.match(searchPattern as RegExp);
-      if (matches) {
-        queryMatch = true;
-        highlights[field] = matches;
-        // Score based on field importance and match count
-        const fieldWeight = field === "title" ? 5 : field === "problem" ? 3 : field === "solution" ? 2 : field === "tags" ? 2 : 1;
-        totalScore += matches.length * fieldWeight;
-      }
-    } else {
-      const searchStr = searchPattern as string;
-      if (testValue.includes(searchStr)) {
-        queryMatch = true;
-        // Calculate score based on match position and frequency
-        const matchCount = (testValue.match(
-          new RegExp(searchStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
-        ) || []).length;
+    // Test each search term against this field
+    for (const term of searchTerms) {
+      let searchPattern: RegExp | string;
+      let termFound = false;
+      
+      if (hasWildcards && !isExactPhrase) {
+        // Convert wildcards to regex: * = .*, ? = .
+        const regexQuery = term
+          .replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape regex chars except * and ?
+          .replace(/\\\*/g, '.*') // Convert \* back to .*
+          .replace(/\\\?/g, '.'); // Convert \? back to .
+        searchPattern = new RegExp(regexQuery, caseSensitive ? 'g' : 'gi');
         
-        const fieldWeight = field === "title" ? 5 : field === "problem" ? 3 : field === "solution" ? 2 : field === "tags" ? 2 : 1;
-        totalScore += matchCount * fieldWeight;
-        
-        // Bonus for matches at the beginning
-        if (testValue.startsWith(searchStr)) {
-          totalScore += 5;
+        const matches = testValue.match(searchPattern);
+        if (matches) {
+          termFound = true;
+          termMatches.set(term, true);
+          if (!highlights[field]) highlights[field] = [];
+          highlights[field].push(...matches);
+          
+          // Score based on field importance and match count
+          const fieldWeight = field === "title" ? 5 : field === "problem" ? 3 : field === "solution" ? 2 : field === "tags" ? 2 : 1;
+          totalScore += matches.length * fieldWeight;
         }
-        
-        // Store simple highlight
-        highlights[field] = [searchStr];
+      } else if (regex && !isExactPhrase) {
+        searchPattern = new RegExp(term, caseSensitive ? 'g' : 'gi');
+        const matches = testValue.match(searchPattern);
+        if (matches) {
+          termFound = true;
+          termMatches.set(term, true);
+          if (!highlights[field]) highlights[field] = [];
+          highlights[field].push(...matches);
+          
+          // Score based on field importance and match count
+          const fieldWeight = field === "title" ? 5 : field === "problem" ? 3 : field === "solution" ? 2 : field === "tags" ? 2 : 1;
+          totalScore += matches.length * fieldWeight;
+        }
+      } else {
+        // Simple string matching
+        const searchStr = caseSensitive ? term : term.toLowerCase();
+        if (testValue.includes(searchStr)) {
+          termFound = true;
+          termMatches.set(term, true);
+          
+          // Calculate score based on match position and frequency
+          const matchCount = (testValue.match(
+            new RegExp(searchStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
+          ) || []).length;
+          
+          const fieldWeight = field === "title" ? 5 : field === "problem" ? 3 : field === "solution" ? 2 : field === "tags" ? 2 : 1;
+          totalScore += matchCount * fieldWeight;
+          
+          // Bonus for matches at the beginning
+          if (testValue.startsWith(searchStr)) {
+            totalScore += 5;
+          }
+          
+          // Store simple highlight
+          if (!highlights[field]) highlights[field] = [];
+          highlights[field].push(searchStr);
+        }
       }
     }
+  }
+  
+  // For multi-word queries, ALL terms must match somewhere
+  if (searchTerms.length > 1 && !isExactPhrase) {
+    queryMatch = termMatches.size === searchTerms.length;
+  } else {
+    // For single terms, exact phrases, wildcards, or regex
+    queryMatch = termMatches.size > 0;
   }
   
   return { match: queryMatch, score: totalScore };

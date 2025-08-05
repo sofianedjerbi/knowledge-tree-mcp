@@ -3,7 +3,7 @@
  * Creates a new knowledge entry from Markdown content (stored as JSON)
  */
 
-import { join } from 'path';
+import { join, dirname } from 'path';
 import type { 
   ToolHandler, 
   MCPResponse, 
@@ -151,7 +151,7 @@ export const addKnowledgeHandler: ToolHandler = async (
   }
   
   // Create the directory structure if it doesn't exist
-  const dir = join(context.knowledgeRoot, jsonPath).replace(/\/[^/]+$/, '');
+  const dir = dirname(fullPath);
   await ensureDirectory(dir);
   
   // Add timestamps if not present
